@@ -13,6 +13,8 @@ import type { FC, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import {
+  HiChevronDown,
+  HiChevronUp,
   HiCog,
   HiDotsVertical,
   HiExclamationCircle,
@@ -45,6 +47,11 @@ interface PaginationProps {
 const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
   const { token } = useAuth();
 
+  const [search, setSearch] = useState<string>('');
+  const [sort, setSort] = useState<string>('name');
+  const [order, setOrder] = useState<string>('asc');
+  const [columnState, setColumnState] = useState<boolean[]>([false, true, false, false, false]);
+
   const [dataElectronic, setDataElectronic] = useState<ProductsTableElectronicProps[]>([]);
   const [dataCosmetic, setDataCosmetic] = useState<ProductsTableCosmeticProps[]>([]);
   const [dataFnb, setDataFnb] = useState<ProductsTableFnbProps[]>([]);
@@ -66,8 +73,14 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
 
       try {
         if (category === PRODUCT_CATEGORIES.ELECTRONICS) {
+          let sortQuery = '';
+          if (sort == 'type') {
+            sortQuery = `&sortByDetail=${sort}`;
+          } else {
+            sortQuery = `&sortBy=${sort}`;
+          }
 
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=1&limit=10&category=electronic`, {
+          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=electronic&name=${search}&order=${order}&${sortQuery}`, {
             headers: {
               Authorization: `Bearer ${token}`
             }
@@ -78,7 +91,7 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
 
         } else if (category === PRODUCT_CATEGORIES.COSMETICS) {
 
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=1&limit=10&category=cosmetic`, {
+          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=cosmetic&name=${search}&order=${order}`, {
             headers: {
               Authorization: `Bearer ${token}`
             }
@@ -88,7 +101,7 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
 
         } else if (category === PRODUCT_CATEGORIES.FNB) {
 
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=1&limit=10&category=fnb`, {
+          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=fnb&name=${search}&order=${order}`, {
             headers: {
               Authorization: `Bearer ${token}`
             }
@@ -105,7 +118,51 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
     };
 
     fetchData();
-  }, [category]);
+  }, [category, search, sort, order]);
+
+  const handlePaginationBtn = async (pageNum: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (category === PRODUCT_CATEGORIES.ELECTRONICS) {
+
+        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=electronic&name=${search}&order=${order}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        setDataElectronic(response.data.data);
+        setPagination(response.data.pagination);
+
+      } else if (category === PRODUCT_CATEGORIES.COSMETICS) {
+
+        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=cosmetic&name=${search}&order=${order}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setDataCosmetic(response.data.data);
+        setPagination(response.data.pagination);
+
+      } else if (category === PRODUCT_CATEGORIES.FNB) {
+
+        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=fnb&name=${search}&order=${order}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setDataFnb(response.data.data);
+        setPagination(response.data.pagination);
+
+      }
+    } catch (err) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <NavbarSidebarLayout isFooter={false}>
@@ -129,8 +186,8 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
             </h1>
           </div>
           <div className="block items-center sm:flex">
-            <SearchForProducts />
-            <div className="hidden space-x-1 border-l border-gray-100 pl-2 dark:border-gray-700 md:flex">
+            <SearchForProducts search={search} setSearch={setSearch} />
+            {/* <div className="hidden space-x-1 border-l border-gray-100 pl-2 dark:border-gray-700 md:flex">
               <a
                 href="#"
                 className="inline-flex cursor-pointer justify-center rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
@@ -159,7 +216,7 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
                 <span className="sr-only">Settings</span>
                 <HiDotsVertical className="text-2xl" />
               </a>
-            </div>
+            </div> */}
             <div className="flex w-full items-center sm:justify-end">
               <AddProductModal />
             </div>
@@ -174,7 +231,10 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
             {!loading && !error && (
               <div className="overflow-hidden shadow">
                 {category === 'electronics' && (
-                  <ProductsTableElectronic data={dataElectronic} />
+                  <ProductsTableElectronic data={dataElectronic} sort={{ value: sort, setter: setSort }} order={{ value: order, setter: setOrder }} columnState={{
+                    value: columnState,
+                    setter: setColumnState
+                  }} />
                 )}
                 {category === 'cosmetics' && (
                   <ProductsTableCosmetic data={dataCosmetic} />
@@ -187,16 +247,31 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
           </div>
         </div>
       </div>
-      <Pagination page={pagination.page} limit={pagination.limit} totalData={pagination.totalData} totalPage={pagination.totalPage} hasNext={pagination.hasNextPage} hasPrev={pagination.hasPrevPage} onPageChange={function (page: number): void {
-        throw new Error("Function not implemented.");
-      }} />
+      <Pagination
+        page={pagination.page}
+        limit={pagination.limit}
+        totalData={pagination.totalData}
+        totalPage={pagination.totalPage}
+        hasNext={pagination.hasNextPage}
+        hasPrev={pagination.hasPrevPage}
+        onPrev={() => {
+          handlePaginationBtn(-1);
+        }}
+        onNext={() => {
+          handlePaginationBtn(1);
+        }} />
     </NavbarSidebarLayout>
   );
 };
 
-const SearchForProducts: FC = function () {
+interface SearchForProductsProps {
+  search: string;
+  setSearch: (search: string) => void;
+}
+
+const SearchForProducts: FC<SearchForProductsProps> = function ({ search, setSearch }) {
   return (
-    <form className="mb-4 sm:mb-0 sm:pr-3" action="#" method="GET">
+    <form className="mb-4 sm:mb-0 sm:pr-3">
       <Label htmlFor="products-search" className="sr-only">
         Search
       </Label>
@@ -204,7 +279,9 @@ const SearchForProducts: FC = function () {
         <TextInput
           id="products-search"
           name="products-search"
-          placeholder="Cari barang..."
+          placeholder="Cari nama barang..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
     </form>
@@ -218,7 +295,7 @@ const AddProductModal: FC = function () {
     <>
       <Button color="primary" onClick={() => setOpen(!isOpen)}>
         <FaPlus className="mr-3 text-sm" />
-        Add product
+        Tambah produk
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
@@ -309,8 +386,7 @@ const EditProductModal: FC = function () {
   return (
     <>
       <Button color="primary" onClick={() => setOpen(!isOpen)}>
-        <HiPencilAlt className="mr-2 text-lg" />
-        Edit item
+        <HiPencilAlt className="text-lg" />
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
@@ -436,8 +512,7 @@ const DeleteProductModal: FC = function () {
   return (
     <>
       <Button color="failure" onClick={() => setOpen(!isOpen)}>
-        <HiTrash className="mr-2 text-lg" />
-        Delete item
+        <HiTrash className="text-lg" />
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen} size="md">
         <Modal.Header className="px-3 pt-3 pb-0">
@@ -504,53 +579,89 @@ interface ProductsTableFnbProps {
 }
 
 interface ProductsTableProps {
-  header: string[];
+  header: {
+    key: string;
+    value: string;
+  }[];
   rows: ReactNode[];
+  sort: {
+    value: string;
+    setter: (value: string) => void;
+  };
+  order: {
+    value: string;
+    setter: (value: string) => void;
+  };
+  columnState: {
+    value: boolean[];
+    setter: (value: boolean[]) => void;
+  };
 }
 
-const ProductsTableElectronic: FC<{ data: ProductsTableElectronicProps[] }> = function ({ data }) {
+const ProductsTableElectronic: FC<{
+  data: ProductsTableElectronicProps[],
+  sort: { value: string, setter: (value: string) => void },
+  order: { value: string, setter: (value: string) => void },
+  columnState: { value: boolean[], setter: (value: boolean[]) => void }
+}> = function ({ data, sort, order, columnState }) {
   return (
     <ProductsTable
-      header={["Kode SKU", "Nama Produk", "Tipe Elektronik", "Stok", "Tanggal Entri"]}
-      rows={
-        data.map((item, index) => {
-          return (
-            <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Table.Cell className="w-4 p-4">
-                <Checkbox />
-              </Table.Cell>
+      header={[
+        { key: 'sku_code', value: 'Kode SKU' },
+        { key: 'name', value: 'Nama Produk' },
+        { key: 'type', value: 'Tipe Elektronik' },
+        { key: 'stock', value: 'Stok' },
+        { key: 'entry_date', value: 'Tanggal Entri' },
+      ]}
+      rows={data.map((item, index) => {
+        return (
+          <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+            {/* <Table.Cell className="w-4 p-4">
+                      <Checkbox />
+                    </Table.Cell> */}
 
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.skuCode}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.productName}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.details.type}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {item.stock}
-                </div>
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  Maks {item.maxStock}
-                </div>
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.entryDate}
-              </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.skuCode}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.productName}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.details.type}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                {item.stock}
+              </div>
+              <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                Maks {item.maxStock}
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.entryDate}
+            </Table.Cell>
 
-              <Table.Cell className="space-x-2 whitespace-nowrap p-4">
-                <div className="flex items-center gap-x-3">
-                  <EditProductModal />
-                  <DeleteProductModal />
-                </div>
-              </Table.Cell>
-            </Table.Row>
-          )
-        })
-      }
+            <Table.Cell className="space-x-2 whitespace-nowrap p-4">
+              <div className="flex items-center gap-x-3">
+                <EditProductModal />
+                <DeleteProductModal />
+              </div>
+            </Table.Cell>
+          </Table.Row>
+        );
+      })}
+      sort={{
+        value: sort.value,
+        setter: sort.setter
+      }}
+      order={{
+        value: order.value,
+        setter: order.setter
+      }}
+      columnState={{
+        value: columnState.value,
+        setter: columnState.setter
+      }}
     />
   )
 }
@@ -558,108 +669,156 @@ const ProductsTableElectronic: FC<{ data: ProductsTableElectronicProps[] }> = fu
 const ProductsTableCosmetic: FC<{ data: ProductsTableCosmeticProps[] }> = function ({ data }) {
   return (
     <ProductsTable
-      header={["Kode SKU", "Nama Produk", "Tipe Elektronik", "Stok", "Tanggal Entri"]}
-      rows={
-        data.map((item, index) => {
-          return (
-            <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Table.Cell className="w-4 p-4">
-                <Checkbox />
-              </Table.Cell>
 
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.skuCode}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.productName}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.details.expireDate}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {item.stock}
-                </div>
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  Maks {item.maxStock}
-                </div>
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.entryDate}
-              </Table.Cell>
+      rows={data.map((item, index) => {
+        return (
+          <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+            {/* <Table.Cell className="w-4 p-4">
+                              <Checkbox />
+                            </Table.Cell> */}
 
-              <Table.Cell className="space-x-2 whitespace-nowrap p-4">
-                <div className="flex items-center gap-x-3">
-                  <EditProductModal />
-                  <DeleteProductModal />
-                </div>
-              </Table.Cell>
-            </Table.Row>
-          )
-        })
-      }
-    />
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.skuCode}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.productName}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.details.expireDate}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                {item.stock}
+              </div>
+              <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                Maks {item.maxStock}
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.entryDate}
+            </Table.Cell>
+
+            <Table.Cell className="space-x-2 whitespace-nowrap p-4">
+              <div className="flex items-center gap-x-3">
+                <EditProductModal />
+                <DeleteProductModal />
+              </div>
+            </Table.Cell>
+          </Table.Row>
+        );
+      })} sort={{
+        value: "",
+        setter: () => { }
+      }} order={{
+        value: "",
+        setter: () => { }
+      }} header={[]} columnState={{
+        value: [],
+        setter: function (value: boolean[]): void {
+          throw new Error("Function not implemented.");
+        }
+      }} />
   )
 }
 
 const ProductsTableFnb: FC<{ data: ProductsTableFnbProps[] }> = function ({ data }) {
   return (
     <ProductsTable
-      header={["Kode SKU", "Nama Produk", "Tipe Elektronik", "Stok", "Tanggal Entri"]}
-      rows={
-        data.map((item, index) => {
-          return (
-            <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Table.Cell className="w-4 p-4">
-                <Checkbox />
-              </Table.Cell>
 
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.skuCode}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.productName}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.details.expireDate}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {item.stock}
-                </div>
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  Maks {item.maxStock}
-                </div>
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.entryDate}
-              </Table.Cell>
+      rows={data.map((item, index) => {
+        return (
+          <Table.Row key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+            {/* <Table.Cell className="w-4 p-4">
+                              <Checkbox />
+                            </Table.Cell> */}
 
-              <Table.Cell className="space-x-2 whitespace-nowrap p-4">
-                <div className="flex items-center gap-x-3">
-                  <EditProductModal />
-                  <DeleteProductModal />
-                </div>
-              </Table.Cell>
-            </Table.Row>
-          )
-        })
-      }
-    />
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.skuCode}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.productName}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.details.expireDate}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                {item.stock}
+              </div>
+              <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                Maks {item.maxStock}
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.entryDate}
+            </Table.Cell>
+
+            <Table.Cell className="space-x-2 whitespace-nowrap p-4">
+              <div className="flex items-center gap-x-3">
+                <EditProductModal />
+                <DeleteProductModal />
+              </div>
+            </Table.Cell>
+          </Table.Row>
+        );
+      })} sort={{
+        value: "",
+        setter: () => { }
+      }} order={{
+        value: "",
+        setter: () => { }
+      }} header={[]} columnState={{
+        value: [],
+        setter: function (value: boolean[]): void {
+          throw new Error("Function not implemented.");
+        }
+      }} />
   )
 }
 
-const ProductsTable: FC<ProductsTableProps> = function ({ header, rows }) {
+const ProductsTable: FC<ProductsTableProps> = function ({ header, rows, sort, order, columnState }) {
+
   return (
     <Table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
       <Table.Head className="bg-gray-100 dark:bg-gray-700">
-        <Table.HeadCell>
+        {/* <Table.HeadCell>
           <span className="sr-only">Toggle selected</span>
           <Checkbox />
-        </Table.HeadCell>
+        </Table.HeadCell> */}
         {
           header.map((item, index) => (
-            <Table.HeadCell key={index}>{item}</Table.HeadCell>
+            <Table.HeadCell key={index}>
+              <div className="flex items-center gap-2 ">
+                <span className={columnState.value[index] ? "text-blue-600" : ""}>{item.value}</span>
+                <button
+                  onClick={() => {
+                    columnState.setter(columnState.value.map((_, idx) => {
+                      if (index === idx) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                    }));
+
+                    sort.setter(item.key);
+                    order.setter(order.value === 'asc' ? 'desc' : 'asc');
+
+                  }}
+                  className={"cursor-pointer shrink-0 justify-center overflow-hidden rounded bg-gray-100 text-gray-500 hover:bg-gray-200 border-gray-200 border"}
+                >
+                  <span className="sr-only">Sort</span>
+                  {columnState.value[index] ? (
+                    order.value === 'asc' ? (
+                      <HiChevronUp className="text-lg" />
+                    ) : (
+                      <HiChevronDown className="text-lg" />
+                    )
+                  ) : (
+                    <div className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </Table.HeadCell>
           ))
         }
         <Table.HeadCell>Aksi</Table.HeadCell>
