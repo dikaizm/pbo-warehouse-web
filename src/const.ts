@@ -19,7 +19,7 @@ export const ROUTES = {
 }
 
 export const PRODUCT_CATEGORIES = {
-    ELECTRONICS: 'electronics',
-    COSMETICS: 'cosmetics',
+    ELECTRONICS: 'electronic',
+    COSMETICS: 'cosmetic',
     FNB: 'fnb',
 }

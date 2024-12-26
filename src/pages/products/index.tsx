@@ -18,6 +18,7 @@ import {
   HiCog,
   HiDotsVertical,
   HiExclamationCircle,
+  HiEye,
   HiHome,
   HiOutlineExclamationCircle,
   HiPencilAlt,
@@ -32,7 +33,7 @@ import { PRODUCT_CATEGORIES } from "../../const";
 import { Pagination } from "../../components/table-pagination";
 
 interface ProductsPageProps {
-  category: string;
+  category: string | 'electronic' | 'cosmetic' | 'fnb';
 }
 
 interface PaginationProps {
@@ -52,117 +53,51 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
   const [order, setOrder] = useState<string>('asc');
   const [columnState, setColumnState] = useState<boolean[]>([false, true, false, false, false]);
 
-  const [dataElectronic, setDataElectronic] = useState<ProductsTableElectronicProps[]>([]);
-  const [dataCosmetic, setDataCosmetic] = useState<ProductsTableCosmeticProps[]>([]);
-  const [dataFnb, setDataFnb] = useState<ProductsTableFnbProps[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [pagination, setPagination] = useState<PaginationProps>({
     page: 1,
     limit: 10,
     totalData: 0,
     totalPage: 0,
     hasNextPage: false,
-    hasPrevPage: false
+    hasPrevPage: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        if (category === PRODUCT_CATEGORIES.ELECTRONICS) {
-          let sortQuery = '';
-          if (sort == 'type') {
-            sortQuery = `&sortByDetail=${sort}`;
-          } else {
-            sortQuery = `&sortBy=${sort}`;
-          }
-
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=electronic&name=${search}&order=${order}&${sortQuery}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-
-          setDataElectronic(response.data.data);
-          setPagination(response.data.pagination);
-
-        } else if (category === PRODUCT_CATEGORIES.COSMETICS) {
-
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=cosmetic&name=${search}&order=${order}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          setDataCosmetic(response.data.data);
-          setPagination(response.data.pagination);
-
-        } else if (category === PRODUCT_CATEGORIES.FNB) {
-
-          const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page}&limit=10&category=fnb&name=${search}&order=${order}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          setDataFnb(response.data.data);
-          setPagination(response.data.pagination);
-
-        }
-      } catch (err) {
-        setError('Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [category, search, sort, order]);
-
-  const handlePaginationBtn = async (pageNum: number) => {
+  const fetchData = async (page: number = pagination.page) => {
     setLoading(true);
     setError(null);
 
     try {
-      if (category === PRODUCT_CATEGORIES.ELECTRONICS) {
-
-        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=electronic&name=${search}&order=${order}`, {
+      let sortQuery = sort === 'type' ? `&sortByDetail=${sort}` : `&sort=${sort}`;
+      let response = await axios.get(
+        `${CONFIG.API_URL}/product/find?page=${page}&limit=${pagination.limit}&category=${category}&name=${search}&order=${order}${sortQuery}`,
+        {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        setDataElectronic(response.data.data);
-        setPagination(response.data.pagination);
-
-      } else if (category === PRODUCT_CATEGORIES.COSMETICS) {
-
-        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=cosmetic&name=${search}&order=${order}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setDataCosmetic(response.data.data);
-        setPagination(response.data.pagination);
-
-      } else if (category === PRODUCT_CATEGORIES.FNB) {
-
-        const response = await axios.get(`${CONFIG.API_URL}/product/find?page=${pagination.page + pageNum}&limit=10&category=fnb&name=${search}&order=${order}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setDataFnb(response.data.data);
-        setPagination(response.data.pagination);
-
-      }
+      setData(response.data.data);
+      setPagination(response.data.pagination);
     } catch (err) {
       setError('Failed to fetch data');
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [category, search, sort, order]);
+
+  const handlePaginationBtn = (pageChange: number) => {
+    if (pagination.page + pageChange > 0 && pagination.page + pageChange <= pagination.totalPage) {
+      fetchData(pagination.page + pageChange);
+    }
+  };
 
   return (
     <NavbarSidebarLayout isFooter={false}>
@@ -230,17 +165,17 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
             {error && <p className="text-red-500 p-4">{error}</p>}
             {!loading && !error && (
               <div className="overflow-hidden shadow">
-                {category === 'electronics' && (
-                  <ProductsTableElectronic data={dataElectronic} sort={{ value: sort, setter: setSort }} order={{ value: order, setter: setOrder }} columnState={{
+                {category === 'electronic' && (
+                  <ProductsTableElectronic data={data} sort={{ value: sort, setter: setSort }} order={{ value: order, setter: setOrder }} columnState={{
                     value: columnState,
                     setter: setColumnState
                   }} />
                 )}
-                {category === 'cosmetics' && (
-                  <ProductsTableCosmetic data={dataCosmetic} />
+                {category === 'cosmetic' && (
+                  <ProductsTableCosmetic data={data} />
                 )}
                 {category === 'fnb' && (
-                  <ProductsTableFnb data={dataFnb} />
+                  <ProductsTableFnb data={data} />
                 )}
               </div>
             )}
@@ -380,13 +315,134 @@ const AddProductModal: FC = function () {
   );
 };
 
+const ViewProductModal: FC = function () {
+  const [isOpen, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button className="px-0 bg-primary-200 hover:bg-primary-300" size="sm" onClick={() => setOpen(!isOpen)}>
+        <HiEye className="text-lg text-primary-600" />
+      </Button>
+      <Modal onClose={() => setOpen(false)} show={isOpen}>
+        <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
+          <strong>View product</strong>
+        </Modal.Header>
+        <Modal.Body>
+          <form>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div>
+                <Label htmlFor="productName">Product name</Label>
+                <TextInput
+                  id="productName"
+                  name="productName"
+                  placeholder='Apple iMac 27"'
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <TextInput
+                  id="category"
+                  name="category"
+                  placeholder="Electronics"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="brand">Brand</Label>
+                <TextInput
+                  id="brand"
+                  name="brand"
+                  placeholder="Apple"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="price">Price</Label>
+                <TextInput
+                  id="price"
+                  name="price"
+                  type="number"
+                  placeholder="$2300"
+                  className="mt-1"
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <Label htmlFor="productDetails">Product details</Label>
+                <Textarea
+                  id="productDetails"
+                  name="productDetails"
+                  placeholder="e.g. 3.8GHz 8-core 10th-generation Intel Core i7 processor, Turbo Boost up to 5.0GHz, Ram 16 GB DDR4 2300Mhz"
+                  rows={6}
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex space-x-5">
+                <div>
+                  <img
+                    alt="Apple iMac 1"
+                    src="/images/products/apple-imac-1.png"
+                    className="h-24"
+                  />
+                  <a href="#" className="cursor-pointer">
+                    <span className="sr-only">Delete</span>
+                    <HiTrash className="-mt-5 text-2xl text-red-600" />
+                  </a>
+                </div>
+                <div>
+                  <img
+                    alt="Apple iMac 2"
+                    src="/images/products/apple-imac-2.png"
+                    className="h-24"
+                  />
+                  <a href="#" className="cursor-pointer">
+                    <span className="sr-only">Delete</span>
+                    <HiTrash className="-mt-5 text-2xl text-red-600" />
+                  </a>
+                </div>
+                <div>
+                  <img
+                    alt="Apple iMac 3"
+                    src="/images/products/apple-imac-3.png"
+                    className="h-24"
+                  />
+                  <a href="#" className="cursor-pointer">
+                    <span className="sr-only">Delete</span>
+                    <HiTrash className="-mt-5 text-2xl text-red-600" />
+                  </a>
+                </div>
+              </div>
+              <div className="lg:col-span-2">
+                <div className="flex w-full items-center justify-center">
+                  <label className="flex h-32 w-full cursor-pointer flex-col rounded border-2 border-dashed border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-700">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <HiUpload className="text-4xl text-gray-300" />
+                      <p className="py-1 text-sm text-gray-600 dark:text-gray-500">
+                        Upload a file or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
+                    </div>
+                    <input type="file" className="hidden" />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </Modal.Body>
+      </Modal>
+    </>
+  );
+};
+
 const EditProductModal: FC = function () {
   const [isOpen, setOpen] = useState(false);
 
   return (
     <>
-      <Button color="primary" onClick={() => setOpen(!isOpen)}>
-        <HiPencilAlt className="text-lg" />
+      <Button className="px-0 bg-orange-200 hover:bg-orange-300" size="sm" onClick={() => setOpen(!isOpen)}>
+        <HiPencilAlt className="text-lg text-orange-500" />
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
@@ -511,8 +567,8 @@ const DeleteProductModal: FC = function () {
 
   return (
     <>
-      <Button color="failure" onClick={() => setOpen(!isOpen)}>
-        <HiTrash className="text-lg" />
+      <Button className="px-0 bg-red-200 hover:bg-red-300" size="sm" color="failure" onClick={() => setOpen(!isOpen)}>
+        <HiTrash className="text-lg text-red-600" />
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen} size="md">
         <Modal.Header className="px-3 pt-3 pb-0">
@@ -642,7 +698,8 @@ const ProductsTableElectronic: FC<{
             </Table.Cell>
 
             <Table.Cell className="space-x-2 whitespace-nowrap p-4">
-              <div className="flex items-center gap-x-3">
+              <div className="flex items-center gap-x-2">
+                <ViewProductModal />
                 <EditProductModal />
                 <DeleteProductModal />
               </div>
