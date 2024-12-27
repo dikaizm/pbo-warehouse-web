@@ -1,17 +1,10 @@
 import { Sidebar, TextInput } from "flowbite-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";
-import {
-  HiChartPie,
-  HiLogin,
-
-  HiSearch,
-  HiShoppingBag,
-  HiUser,
-
-} from "react-icons/hi";
+import { HiChartPie, HiLogin, HiSearch, HiUser } from "react-icons/hi";
 import { ROUTES } from "../const";
 import { useAuth } from "../providers/auth-provider";
+import { FaDownload, FaUpload, FaWarehouse } from "react-icons/fa";
 
 const ExampleSidebar: FC = function () {
   const { logout } = useAuth();
@@ -25,7 +18,7 @@ const ExampleSidebar: FC = function () {
 
   const handleLogout = () => {
     logout();
-  }
+  };
 
   return (
     <Sidebar aria-label="Sidebar with multi-level dropdown example">
@@ -46,36 +39,50 @@ const ExampleSidebar: FC = function () {
                 href={ROUTES.HOME}
                 icon={HiChartPie}
                 className={
-                  ROUTES.HOME === currentPage ? "bg-gray-100 dark:bg-gray-700" : ""
+                  ROUTES.HOME === currentPage
+                    ? "bg-gray-100 dark:bg-gray-700"
+                    : ""
                 }
               >
                 Dashboard
               </Sidebar.Item>
 
-              <Sidebar.Collapse icon={HiShoppingBag} label="Inventori Barang">
-                <Sidebar.Item href={ROUTES.PRODUCTS.ELECTRONICS}
+              <Sidebar.Collapse icon={FaWarehouse} label="Inventori Barang">
+                <Sidebar.Item
+                  href={ROUTES.PRODUCTS.ELECTRONICS}
                   className={
                     ROUTES.PRODUCTS.ELECTRONICS === currentPage
                       ? "bg-gray-100 dark:bg-gray-700"
                       : ""
-                  }>Elektronik</Sidebar.Item>
-                <Sidebar.Item href={ROUTES.PRODUCTS.COSMETICS}
+                  }
+                >
+                  Elektronik
+                </Sidebar.Item>
+                <Sidebar.Item
+                  href={ROUTES.PRODUCTS.COSMETICS}
                   className={
                     ROUTES.PRODUCTS.COSMETICS === currentPage
                       ? "bg-gray-100 dark:bg-gray-700"
                       : ""
-                  }>Kosmetik</Sidebar.Item>
-                <Sidebar.Item href={ROUTES.PRODUCTS.FNB}
+                  }
+                >
+                  Kosmetik
+                </Sidebar.Item>
+                <Sidebar.Item
+                  href={ROUTES.PRODUCTS.FNB}
                   className={
                     ROUTES.PRODUCTS.FNB === currentPage
                       ? "bg-gray-100 dark:bg-gray-700"
                       : ""
-                  }>Food & Beverage</Sidebar.Item>
+                  }
+                >
+                  Food & Beverage
+                </Sidebar.Item>
               </Sidebar.Collapse>
 
               <Sidebar.Item
                 href={ROUTES.RECORDS.INBOUND}
-                icon={HiShoppingBag}
+                icon={FaDownload}
                 className={
                   ROUTES.RECORDS.INBOUND === currentPage
                     ? "bg-gray-100 dark:bg-gray-700"
@@ -87,7 +94,7 @@ const ExampleSidebar: FC = function () {
 
               <Sidebar.Item
                 href={ROUTES.RECORDS.OUTBOUND}
-                icon={HiShoppingBag}
+                icon={FaUpload}
                 className={
                   ROUTES.RECORDS.OUTBOUND === currentPage
                     ? "bg-gray-100 dark:bg-gray-700"
@@ -96,7 +103,6 @@ const ExampleSidebar: FC = function () {
               >
                 Barang Keluar
               </Sidebar.Item>
-
             </Sidebar.ItemGroup>
             <Sidebar.ItemGroup>
               <Sidebar.Item
@@ -110,7 +116,11 @@ const ExampleSidebar: FC = function () {
               >
                 Profil
               </Sidebar.Item>
-              <Sidebar.Item onClick={handleLogout} href={ROUTES.AUTH.LOGIN} icon={HiLogin}>
+              <Sidebar.Item
+                onClick={handleLogout}
+                href={ROUTES.AUTH.LOGIN}
+                icon={HiLogin}
+              >
                 Logout
               </Sidebar.Item>
             </Sidebar.ItemGroup>

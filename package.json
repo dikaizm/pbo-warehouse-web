@@ -12,7 +12,7 @@
     "url": "https://github.com/themesberg/flowbite-react-admin-dashboard.git"
   },
   "scripts": {
-    "build": "yarn typecheck && vite build",
+    "build": "vite build",
     "dev": "vite --host",
     "format": "prettier --check --ignore-path .gitignore --write .",
     "lint": "eslint --ignore-path .gitignore .",

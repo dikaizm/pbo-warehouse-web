@@ -35,7 +35,9 @@ root.render(
 
             <Route
               path={ROUTES.PRODUCTS.ELECTRONICS}
-              element={<ProductsPage category={PRODUCT_CATEGORIES.ELECTRONICS} />}
+              element={
+                <ProductsPage category={PRODUCT_CATEGORIES.ELECTRONICS} />
+              }
             />
             <Route
               path={ROUTES.PRODUCTS.COSMETICS}
