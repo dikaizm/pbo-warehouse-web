@@ -6,10 +6,9 @@ import {
   Modal,
   Select,
   Table,
-  Textarea,
   TextInput,
 } from "flowbite-react";
-import type { FC, ReactNode } from "react";
+import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import {
@@ -20,7 +19,6 @@ import {
   HiOutlineExclamationCircle,
   HiPencilAlt,
   HiTrash,
-  HiUpload,
 } from "react-icons/hi";
 import NavbarSidebarLayout from "../../layouts/navbar-sidebar";
 import axios from "axios";
@@ -28,18 +26,15 @@ import { CONFIG } from "../../config";
 import { useAuth } from "../../providers/auth-provider";
 import { Pagination } from "../../components/table-pagination";
 import ListItem from "../../components/list-item";
+import { getProductCategory, PRODUCT_CATEGORIES } from "../../const";
+import type {
+  PaginationProps,
+  TableBaseProps,
+  TableFilterProps,
+} from "../../types/table";
 
 interface ProductsPageProps {
   category: string | "electronic" | "cosmetic" | "fnb";
-}
-
-interface PaginationProps {
-  page: number;
-  limit: number;
-  totalData: number;
-  totalPage: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
 }
 
 const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
@@ -55,6 +50,7 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
     false,
     false,
   ]);
+  const [productUpdate, setProductUpdate] = useState<boolean>(false);
 
   const [data, setData] = useState<any[]>([]);
   const [pagination, setPagination] = useState<PaginationProps>({
@@ -95,7 +91,14 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
 
   useEffect(() => {
     fetchData();
-  }, [category, search, sort, order]);
+  }, [category, search, sort, order, pagination.limit]);
+
+  useEffect(() => {
+    if (productUpdate) {
+      fetchData();
+      setProductUpdate(false);
+    }
+  }, [productUpdate]);
 
   const handlePaginationBtn = (pageChange: number) => {
     if (
@@ -108,27 +111,57 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
 
   return (
     <NavbarSidebarLayout isFooter={false}>
-      <div className="block items-center justify-between border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:flex">
+      <div className="block items-center justify-between overflow-hidden rounded-lg border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:flex">
         <div className="mb-1 w-full">
           <div className="mb-4">
             <Breadcrumb className="mb-4">
               <Breadcrumb.Item href="#">
                 <div className="flex items-center gap-x-3">
                   <HiHome className="text-xl" />
-                  <span className="dark:text-white">Home</span>
+                  <span className="dark:text-white">Beranda</span>
                 </div>
               </Breadcrumb.Item>
               <Breadcrumb.Item>Inventori</Breadcrumb.Item>
-              <Breadcrumb.Item>{category}</Breadcrumb.Item>
+              <Breadcrumb.Item>{getProductCategory(category)}</Breadcrumb.Item>
             </Breadcrumb>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-              Produk {category}
+              Produk {getProductCategory(category)}
             </h1>
           </div>
           <div className="block items-center sm:flex">
             <SearchForProducts search={search} setSearch={setSearch} />
+            <div className="hidden space-x-1 border-l border-gray-100 pl-2  md:flex">
+              <div className="flex items-center justify-center gap-2">
+                <HiEye className="text-lg" />
+                <span className="text-sm">Tampilkan</span>
+
+                <Select
+                  sizing="sm"
+                  className="relative w-20 cursor-pointer"
+                  id="showingCount"
+                  placeholder="10"
+                  value={pagination.limit}
+                  onChange={(e) => {
+                    setPagination({
+                      ...pagination,
+                      limit: e.target.value as unknown as number,
+                    });
+                  }}
+                >
+                  <option value="10" defaultChecked>
+                    10
+                  </option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </Select>
+              </div>
+            </div>
             <div className="flex w-full items-center sm:justify-end">
-              <AddProductModal />
+              <AddProductModal
+                category={category}
+                setUpdate={setProductUpdate}
+              />
             </div>
           </div>
         </div>
@@ -140,7 +173,7 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
             {error && <p className="p-4 text-red-500">{error}</p>}
             {!loading && !error && (
               <div className="overflow-hidden shadow">
-                {category === "electronic" && (
+                {category === PRODUCT_CATEGORIES.ELECTRONICS && (
                   <ProductsTableElectronic
                     data={data}
                     sort={{ value: sort, setter: setSort }}
@@ -149,12 +182,33 @@ const ProductsPage: FC<ProductsPageProps> = function ({ category }) {
                       value: columnState,
                       setter: setColumnState,
                     }}
+                    update={{ value: productUpdate, setter: setProductUpdate }}
                   />
                 )}
-                {category === "cosmetic" && (
-                  <ProductsTableCosmetic data={data} />
+                {category === PRODUCT_CATEGORIES.COSMETICS && (
+                  <ProductsTableCosmetic
+                    data={data}
+                    sort={{ value: sort, setter: setSort }}
+                    order={{ value: order, setter: setOrder }}
+                    columnState={{
+                      value: columnState,
+                      setter: setColumnState,
+                    }}
+                    update={{ value: productUpdate, setter: setProductUpdate }}
+                  />
                 )}
-                {category === "fnb" && <ProductsTableFnb data={data} />}
+                {category === PRODUCT_CATEGORIES.FNB && (
+                  <ProductsTableFnb
+                    data={data}
+                    sort={{ value: sort, setter: setSort }}
+                    order={{ value: order, setter: setOrder }}
+                    columnState={{
+                      value: columnState,
+                      setter: setColumnState,
+                    }}
+                    update={{ value: productUpdate, setter: setProductUpdate }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -217,13 +271,17 @@ interface AddProductProps {
   };
 }
 
-const AddProductModal: FC = function () {
+const AddProductModal: FC<{
+  category: string;
+  // eslint-disable-next-line no-unused-vars
+  setUpdate: (value: boolean) => void;
+}> = function ({ category, setUpdate }) {
   const { token } = useAuth();
   const [isOpen, setOpen] = useState(false);
   const [data, setData] = useState<AddProductProps>({
     skuCode: "",
     name: "",
-    category: "",
+    category: category,
     maxStock: 0,
     details: {
       type: "",
@@ -232,10 +290,6 @@ const AddProductModal: FC = function () {
   });
 
   function validateForm(): string {
-    if (data.category === "") {
-      return "Kategori produk tidak boleh kosong";
-    }
-
     if (data.name === "") {
       return "Nama produk tidak boleh kosong";
     }
@@ -248,12 +302,16 @@ const AddProductModal: FC = function () {
       return "Stok maksimal tidak boleh kurang dari 1";
     }
 
-    if (data.category === "electronic" && data.details.type === "") {
+    if (
+      data.category === PRODUCT_CATEGORIES.ELECTRONICS &&
+      data.details.type === ""
+    ) {
       return "Tipe elektronik tidak boleh kosong";
     }
 
     if (
-      (data.category === "cosmetic" || data.category === "fnb") &&
+      (data.category === PRODUCT_CATEGORIES.COSMETICS ||
+        data.category === PRODUCT_CATEGORIES.FNB) &&
       data.details.expireDate === ""
     ) {
       return "Tanggal kadaluarsa tidak boleh kosong";
@@ -280,6 +338,7 @@ const AddProductModal: FC = function () {
 
       if (response.data.success) {
         setOpen(false);
+        setUpdate(true);
       }
     } catch (error: any) {
       console.log(error.message);
@@ -295,7 +354,7 @@ const AddProductModal: FC = function () {
           setData({
             skuCode: "",
             name: "",
-            category: "",
+            category: category,
             maxStock: 0,
             details: {
               type: "",
@@ -309,36 +368,11 @@ const AddProductModal: FC = function () {
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-          <strong>Tambah produk</strong>
+          <strong>Tambah Produk Elektronik</strong>
         </Modal.Header>
         <Modal.Body>
           <form>
-            <div>
-              <Label htmlFor="category" value="Kategori" />
-              <Select
-                className="mt-1"
-                id="category"
-                required
-                placeholder="Pilih kategori"
-                defaultChecked
-                value={data.category}
-                onChange={(e) => {
-                  setData({
-                    ...data,
-                    category: e.target.value,
-                  });
-                }}
-              >
-                <option defaultChecked hidden>
-                  Pilih kategori
-                </option>
-                <option value="electronic">Elektronik</option>
-                <option value="cosmetic">Kosmetik</option>
-                <option value="fnb">FnB</option>
-              </Select>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <Label htmlFor="productName">Nama Produk</Label>
                 <TextInput
@@ -397,7 +431,7 @@ const AddProductModal: FC = function () {
                 />
               </div>
 
-              {data.category === "electronic" && (
+              {data.category === PRODUCT_CATEGORIES.ELECTRONICS && (
                 <div>
                   <Label htmlFor="type">Tipe</Label>
                   <TextInput
@@ -419,27 +453,28 @@ const AddProductModal: FC = function () {
                 </div>
               )}
 
-              {(data.category === "cosmetic" || data.category === "fnb") && (
-                <div>
-                  <Label htmlFor="expireDate">Tanggal Kadaluarsa</Label>
-                  <TextInput
-                    type="date"
-                    id="expireDate"
-                    name="expireDate"
-                    className="mt-1"
-                    required
-                    value={data.details.expireDate}
-                    onChange={(e) => {
-                      setData({
-                        ...data,
-                        details: {
-                          expireDate: e.target.value,
-                        },
-                      });
-                    }}
-                  />
-                </div>
-              )}
+              {(data.category === PRODUCT_CATEGORIES.COSMETICS ||
+                data.category === PRODUCT_CATEGORIES.FNB) && (
+                  <div>
+                    <Label htmlFor="expireDate">Tanggal Kadaluarsa</Label>
+                    <TextInput
+                      type="date"
+                      id="expireDate"
+                      name="expireDate"
+                      className="mt-1"
+                      required
+                      value={data.details.expireDate}
+                      onChange={(e) => {
+                        setData({
+                          ...data,
+                          details: {
+                            expireDate: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                )}
             </div>
           </form>
         </Modal.Body>
@@ -539,8 +574,102 @@ const ViewProductModal: FC<{ id: string }> = function ({ id }) {
   );
 };
 
-const EditProductModal: FC = function () {
+interface EditProductProps {
+  name: string;
+  category: string;
+  maxStock: number;
+  details: {
+    type?: string;
+    expireDate?: string;
+  };
+}
+
+const EditProductModal: FC<{
+  id: string;
+  // eslint-disable-next-line no-unused-vars
+  setUpdate: (value: boolean) => void;
+}> = function ({ id, setUpdate }) {
   const [isOpen, setOpen] = useState(false);
+  const { token } = useAuth();
+
+  const [data, setData] = useState<EditProductProps>({
+    name: "",
+    category: "",
+    maxStock: 0,
+    details: {
+      type: "",
+      expireDate: "",
+    },
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          `${CONFIG.API_URL}/product/find/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setData({
+          name: response.data.data.productName,
+          category: response.data.data.category,
+          maxStock: response.data.data.maxStock,
+          details: {
+            type: response.data.data.details?.type,
+            expireDate: response.data.data.details?.expireDate,
+          },
+        });
+      } catch (error: any) {
+        console.log(error.message);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleEditProduct = async () => {
+    console.log(data);
+
+    try {
+      const details: any = {};
+      if (data.category === PRODUCT_CATEGORIES.ELECTRONICS) {
+        details.type = data.details.type;
+      } else {
+        details.expireDate = data.details.expireDate;
+      }
+
+      const response = await axios.put(
+        `${CONFIG.API_URL}/product/update/${id}`,
+        {
+          name: data.name,
+          category: data.category,
+          maxStock: data.maxStock,
+          details: details,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log(response.data);
+
+      if (response.data.success) {
+        setOpen(false);
+        setUpdate(true);
+      } else {
+        throw new Error("Gagal mengedit produk");
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      alert(error.message);
+    }
+  };
 
   return (
     <>
@@ -553,115 +682,96 @@ const EditProductModal: FC = function () {
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-          <strong>Edit product</strong>
+          <strong>Edit Produk</strong>
         </Modal.Header>
         <Modal.Body>
           <form>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
-                <Label htmlFor="productName">Product name</Label>
+                <Label htmlFor="productName">Nama Produk</Label>
                 <TextInput
                   id="productName"
                   name="productName"
                   placeholder='Apple iMac 27"'
                   className="mt-1"
+                  value={data.name}
+                  onChange={(e) => {
+                    setData({
+                      ...data,
+                      name: e.target.value,
+                    });
+                  }}
                 />
               </div>
+              {data.category === PRODUCT_CATEGORIES.ELECTRONICS && (
+                <div>
+                  <Label htmlFor="type">Tipe</Label>
+                  <TextInput
+                    id="type"
+                    name="type"
+                    placeholder="Laptop"
+                    className="mt-1"
+                    value={data.details.type ?? ""}
+                    onChange={(e) => {
+                      setData({
+                        ...data,
+                        details: {
+                          type: e.target.value,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              )}
+
+              {(data.category === PRODUCT_CATEGORIES.COSMETICS ||
+                data.category === PRODUCT_CATEGORIES.FNB) && (
+                  <div>
+                    <Label htmlFor="expireDate">Tanggal Kadaluarsa</Label>
+                    <TextInput
+                      type="date"
+                      id="expireDate"
+                      name="expireDate"
+                      className="mt-1"
+                      value={data.details.expireDate ?? ""}
+                      onChange={(e) => {
+                        setData({
+                          ...data,
+                          details: {
+                            expireDate: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+
               <div>
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="maxStock">Stok Maksimum</Label>
                 <TextInput
-                  id="category"
-                  name="category"
-                  placeholder="Electronics"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="brand">Brand</Label>
-                <TextInput
-                  id="brand"
-                  name="brand"
-                  placeholder="Apple"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="price">Price</Label>
-                <TextInput
-                  id="price"
-                  name="price"
                   type="number"
-                  placeholder="$2300"
+                  id="maxStock"
+                  name="maxStock"
+                  placeholder="50"
                   className="mt-1"
+                  value={data.maxStock}
+                  onChange={(e) => {
+                    const value = e.target.value as unknown as number;
+                    if (value < 0) return;
+
+                    setData({
+                      ...data,
+                      maxStock: value,
+                    });
+                  }}
                 />
-              </div>
-              <div className="lg:col-span-2">
-                <Label htmlFor="productDetails">Product details</Label>
-                <Textarea
-                  id="productDetails"
-                  name="productDetails"
-                  placeholder="e.g. 3.8GHz 8-core 10th-generation Intel Core i7 processor, Turbo Boost up to 5.0GHz, Ram 16 GB DDR4 2300Mhz"
-                  rows={6}
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex space-x-5">
-                <div>
-                  <img
-                    alt="Apple iMac 1"
-                    src="/images/products/apple-imac-1.png"
-                    className="h-24"
-                  />
-                  <a href="#" className="cursor-pointer">
-                    <span className="sr-only">Delete</span>
-                    <HiTrash className="-mt-5 text-2xl text-red-600" />
-                  </a>
-                </div>
-                <div>
-                  <img
-                    alt="Apple iMac 2"
-                    src="/images/products/apple-imac-2.png"
-                    className="h-24"
-                  />
-                  <a href="#" className="cursor-pointer">
-                    <span className="sr-only">Delete</span>
-                    <HiTrash className="-mt-5 text-2xl text-red-600" />
-                  </a>
-                </div>
-                <div>
-                  <img
-                    alt="Apple iMac 3"
-                    src="/images/products/apple-imac-3.png"
-                    className="h-24"
-                  />
-                  <a href="#" className="cursor-pointer">
-                    <span className="sr-only">Delete</span>
-                    <HiTrash className="-mt-5 text-2xl text-red-600" />
-                  </a>
-                </div>
-              </div>
-              <div className="lg:col-span-2">
-                <div className="flex w-full items-center justify-center">
-                  <label className="flex h-32 w-full cursor-pointer flex-col rounded border-2 border-dashed border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-700">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <HiUpload className="text-4xl text-gray-300" />
-                      <p className="py-1 text-sm text-gray-600 dark:text-gray-500">
-                        Upload a file or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        PNG, JPG, GIF up to 10MB
-                      </p>
-                    </div>
-                    <input type="file" className="hidden" />
-                  </label>
-                </div>
               </div>
             </div>
           </form>
         </Modal.Body>
         <Modal.Footer>
-          <Button color="primary" onClick={() => setOpen(false)}>
-            Save all
+          <Button color="primary" onClick={() => handleEditProduct()}>
+            Simpan
           </Button>
         </Modal.Footer>
       </Modal>
@@ -669,7 +779,11 @@ const EditProductModal: FC = function () {
   );
 };
 
-const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
+const DeleteProductModal: FC<{
+  id: string;
+  // eslint-disable-next-line no-unused-vars
+  setUpdate: (value: boolean) => void;
+}> = function ({ id, setUpdate }) {
   const [isOpen, setOpen] = useState(false);
   const { token } = useAuth();
 
@@ -686,6 +800,7 @@ const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
 
       if (response.data.success) {
         setOpen(false);
+        setUpdate(true);
       } else {
         alert("Gagal menghapus produk");
       }
@@ -713,6 +828,10 @@ const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
           <div className="flex flex-col items-center gap-y-6 text-center">
             <HiOutlineExclamationCircle className="text-7xl text-red-600" />
             <p className="text-lg text-gray-500 dark:text-gray-300">
+              <b>
+                Menghapus barang ini berarti menghapus seluruh data yang terkait
+                pencatatan stok barang.{" "}
+              </b>
               Apakah kamu yakin ingin menghapus produk ini?
             </p>
             <div className="flex items-center gap-x-3">
@@ -730,7 +849,7 @@ const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
   );
 };
 
-interface ProductsTableElectronicProps {
+interface ProductBaseProps {
   id: string;
   skuCode: string;
   productName: string;
@@ -738,71 +857,48 @@ interface ProductsTableElectronicProps {
   stock: number;
   maxStock: number;
   entryDate: string;
+}
+
+interface ProductElectronicProps extends ProductBaseProps {
   details: {
     type: string;
   };
 }
 
-interface ProductsTableCosmeticProps {
-  id: string;
-  skuCode: string;
-  productName: string;
-  category: string;
-  stock: number;
-  maxStock: number;
-  entryDate: string;
+interface ProductCosmeticProps extends ProductBaseProps {
   details: {
     expireDate: string;
   };
 }
 
-interface ProductsTableFnbProps {
-  id: string;
-  skuCode: string;
-  productName: string;
-  category: string;
-  stock: number;
-  maxStock: number;
-  entryDate: string;
+interface ProductFnbProps extends ProductBaseProps {
   details: {
     expireDate: string;
   };
 }
 
-interface ProductsTableProps {
-  header: {
-    key: string;
-    value: string;
-  }[];
-  rows: ReactNode[];
-  sort: {
-    value: string;
-    // eslint-disable-next-line no-unused-vars
-    setter: (value: string) => void;
-  };
-  order: {
-    value: string;
-    // eslint-disable-next-line no-unused-vars
-    setter: (value: string) => void;
-  };
-  columnState: {
-    value: boolean[];
-    // eslint-disable-next-line no-unused-vars
-    setter: (value: boolean[]) => void;
-  };
+interface ProductsTableElectronicProps extends TableFilterProps {
+  data: ProductElectronicProps[];
 }
 
-const ProductsTableElectronic: FC<{
-  data: ProductsTableElectronicProps[];
-  // eslint-disable-next-line no-unused-vars
-  sort: { value: string; setter: (value: string) => void };
-  // eslint-disable-next-line no-unused-vars
-  order: { value: string; setter: (value: string) => void };
-  // eslint-disable-next-line no-unused-vars
-  columnState: { value: boolean[]; setter: (value: boolean[]) => void };
-}> = function ({ data, sort, order, columnState }) {
+interface ProductsTableCosmeticProps extends TableFilterProps {
+  data: ProductCosmeticProps[];
+}
+
+interface ProductsTableFnbProps extends TableFilterProps {
+  data: ProductFnbProps[];
+}
+
+const ProductsTableElectronic: FC<ProductsTableElectronicProps> = function ({
+  data,
+  sort,
+  order,
+  columnState,
+  update,
+}) {
   return (
     <ProductsTable
+      update={update}
       header={[
         { key: "sku_code", value: "Kode SKU" },
         { key: "name", value: "Nama Produk" },
@@ -844,8 +940,8 @@ const ProductsTableElectronic: FC<{
             <Table.Cell className="space-x-2 whitespace-nowrap p-4">
               <div className="flex items-center gap-x-2">
                 <ViewProductModal id={item.id} />
-                <EditProductModal />
-                <DeleteProductModal id={item.id} />
+                <EditProductModal id={item.id} setUpdate={update.setter} />
+                <DeleteProductModal id={item.id} setUpdate={update.setter} />
               </div>
             </Table.Cell>
           </Table.Row>
@@ -867,73 +963,23 @@ const ProductsTableElectronic: FC<{
   );
 };
 
-const ProductsTableCosmetic: FC<{ data: ProductsTableCosmeticProps[] }> =
-  function ({ data }) {
-    return (
-      <ProductsTable
-        rows={data.map((item, index) => {
-          return (
-            <Table.Row
-              key={index}
-              className="hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              {/* <Table.Cell className="w-4 p-4">
-                              <Checkbox />
-                            </Table.Cell> */}
-
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.skuCode}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.productName}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.details.expireDate}
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {item.stock}
-                </div>
-                <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  Maks {item.maxStock}
-                </div>
-              </Table.Cell>
-              <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.entryDate}
-              </Table.Cell>
-
-              <Table.Cell className="space-x-2 whitespace-nowrap p-4">
-                <div className="flex items-center gap-x-3">
-                  <EditProductModal />
-                  <DeleteProductModal id={item.id} />
-                </div>
-              </Table.Cell>
-            </Table.Row>
-          );
-        })}
-        sort={{
-          value: "",
-          setter: () => { },
-        }}
-        order={{
-          value: "",
-          setter: () => { },
-        }}
-        header={[]}
-        columnState={{
-          value: [],
-          // eslint-disable-next-line no-unused-vars
-          setter: () => { },
-        }}
-      />
-    );
-  };
-
-const ProductsTableFnb: FC<{ data: ProductsTableFnbProps[] }> = function ({
+const ProductsTableCosmetic: FC<ProductsTableCosmeticProps> = function ({
   data,
+  sort,
+  order,
+  columnState,
+  update,
 }) {
   return (
     <ProductsTable
+      update={update}
+      header={[
+        { key: "sku_code", value: "Kode SKU" },
+        { key: "name", value: "Nama Produk" },
+        { key: "expire_date", value: "Tanggal Kadaluarsa" },
+        { key: "stock", value: "Stok" },
+        { key: "created_at", value: "Tanggal Entri" },
+      ]}
       rows={data.map((item, index) => {
         return (
           <Table.Row
@@ -967,32 +1013,105 @@ const ProductsTableFnb: FC<{ data: ProductsTableFnbProps[] }> = function ({
 
             <Table.Cell className="space-x-2 whitespace-nowrap p-4">
               <div className="flex items-center gap-x-3">
-                <EditProductModal />
-                <DeleteProductModal id={item.id} />
+                <ViewProductModal id={item.id} />
+                <EditProductModal id={item.id} setUpdate={update.setter} />
+                <DeleteProductModal id={item.id} setUpdate={update.setter} />
               </div>
             </Table.Cell>
           </Table.Row>
         );
       })}
       sort={{
-        value: "",
-        setter: () => { },
+        value: sort.value,
+        setter: sort.setter,
       }}
       order={{
-        value: "",
-        setter: () => { },
+        value: order.value,
+        setter: order.setter,
       }}
-      header={[]}
       columnState={{
-        value: [],
-        // eslint-disable-next-line no-unused-vars
-        setter: () => { },
+        value: columnState.value,
+        setter: columnState.setter,
       }}
     />
   );
 };
 
-const ProductsTable: FC<ProductsTableProps> = function ({
+const ProductsTableFnb: FC<ProductsTableFnbProps> = function ({
+  data,
+  sort,
+  order,
+  columnState,
+  update,
+}) {
+  return (
+    <ProductsTable
+      update={update}
+      header={[
+        { key: "sku_code", value: "Kode SKU" },
+        { key: "name", value: "Nama Produk" },
+        { key: "expire_date", value: "Tanggal Kadaluarsa" },
+        { key: "stock", value: "Stok" },
+        { key: "created_at", value: "Tanggal Entri" },
+      ]}
+      rows={data.map((item, index) => {
+        return (
+          <Table.Row
+            key={index}
+            className="hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {/* <Table.Cell className="w-4 p-4">
+                              <Checkbox />
+                            </Table.Cell> */}
+
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.skuCode}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.productName}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.details.expireDate}
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                {item.stock}
+              </div>
+              <div className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                Maks {item.maxStock}
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
+              {item.entryDate}
+            </Table.Cell>
+
+            <Table.Cell className="space-x-2 whitespace-nowrap p-4">
+              <div className="flex items-center gap-x-3">
+                <ViewProductModal id={item.id} />
+                <EditProductModal id={item.id} setUpdate={update.setter} />
+                <DeleteProductModal id={item.id} setUpdate={update.setter} />
+              </div>
+            </Table.Cell>
+          </Table.Row>
+        );
+      })}
+      sort={{
+        value: sort.value,
+        setter: sort.setter,
+      }}
+      order={{
+        value: order.value,
+        setter: order.setter,
+      }}
+      columnState={{
+        value: columnState.value,
+        setter: columnState.setter,
+      }}
+    />
+  );
+};
+
+const ProductsTable: FC<TableBaseProps> = function ({
   header,
   rows,
   sort,
@@ -1007,7 +1126,7 @@ const ProductsTable: FC<ProductsTableProps> = function ({
           <Checkbox />
         </Table.HeadCell> */}
         {header.map((item, index) => (
-          <Table.HeadCell key={index}>
+          <Table.HeadCell key={index} className="px-4">
             <div className="flex items-center gap-2 ">
               <span className={columnState.value[index] ? "text-blue-600" : ""}>
                 {item.value}

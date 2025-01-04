@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import axios from "axios";
-import { Button, Card, Checkbox, Label, TextInput } from "flowbite-react";
+import { Button, Card, Label, TextInput } from "flowbite-react";
 import { useState, type FC } from "react";
 import { CONFIG } from "../../config";
 import { useNavigate } from "react-router";
@@ -13,7 +13,6 @@ const SignInPage: FC = function () {
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,14 +30,13 @@ const SignInPage: FC = function () {
       const response = await axios.post(`${CONFIG.API_URL}/auth/login`, {
         email,
         password,
-      })
+      });
 
       // Save token to local storage
       login(response.data.data.token);
 
       // Redirect to dashboard
       navigate(ROUTES.HOME);
-
     } catch (error: any) {
       console.error(error.response.data);
       setError(error.response.data.message as string);
@@ -89,20 +87,13 @@ const SignInPage: FC = function () {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-x-3">
-              <Checkbox id="rememberMe" name="rememberMe" />
-              <Label htmlFor="rememberMe">Remember me</Label>
-            </div>
-            <a
-              href="#"
-              className="w-1/2 text-right text-sm text-primary-600 dark:text-primary-300"
-            >
-              Lost Password?
-            </a>
-          </div>
           <div className="mb-6">
-            <Button onClick={handleSubmit} type="submit" className="w-full lg:w-auto">
+            <Button
+              onClick={handleSubmit}
+              type="submit"
+              className="w-full lg:w-auto"
+              color="primary"
+            >
               Login to your account
             </Button>
             {error && (

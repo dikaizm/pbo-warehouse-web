@@ -13,6 +13,8 @@ import ProductsPage from "./pages/products";
 import UserListPage from "./pages/users/list";
 import { PRODUCT_CATEGORIES, ROUTES } from "./const";
 import { AuthProvider } from "./providers/auth-provider";
+import RecordInboundPage from "./pages/inbound";
+import RecordOutboundPage from "./pages/outbound";
 
 const container = document.getElementById("root");
 
@@ -46,6 +48,15 @@ root.render(
             <Route
               path={ROUTES.PRODUCTS.FNB}
               element={<ProductsPage category={PRODUCT_CATEGORIES.FNB} />}
+            />
+
+            <Route
+              path={ROUTES.RECORDS.INBOUND}
+              element={<RecordInboundPage />}
+            />
+            <Route
+              path={ROUTES.RECORDS.OUTBOUND}
+              element={<RecordOutboundPage />}
             />
 
             <Route path={ROUTES.PROFILE} element={<UserListPage />} />

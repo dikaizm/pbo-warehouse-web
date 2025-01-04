@@ -33,11 +33,11 @@ export const Pagination: FC<PaginationProps> = function ({ page, limit, totalDat
                     <HiChevronRight className="text-2xl" />
                 </button>
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                    Showing&nbsp;
+                    Menampilkan&nbsp;
                     <span className="font-semibold text-gray-900 dark:text-white">
                         {(page - 1) * limit + 1}-{page * limit}
                     </span>
-                    &nbsp;of&nbsp;
+                    &nbsp;dari&nbsp;
                     <span className="font-semibold text-gray-900 dark:text-white">
                         {totalData}
                     </span>

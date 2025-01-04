@@ -2,15 +2,17 @@ import type { CustomFlowbiteTheme } from "flowbite-react";
 
 const flowbiteTheme: CustomFlowbiteTheme = {
   badge: {
-    color: {
-      primary:
-        "bg-primary-100 text-primary-800 dark:bg-primary-200 dark:text-primary-800 group-hover:bg-primary-200 dark:group-hover:bg-primary-300",
+    root: {
+      color: {
+        primary:
+          "bg-primary-100 text-primary-800 dark:bg-primary-200 dark:text-primary-800 group-hover:bg-primary-200 dark:group-hover:bg-primary-300",
+      },
+      size: {
+        xl: "px-3 py-2 text-base rounded-md",
+      },
     },
     icon: {
       off: "rounded-full px-2 py-1",
-    },
-    size: {
-      xl: "px-3 py-2 text-base rounded-md",
     },
   },
   button: {
@@ -42,10 +44,15 @@ const flowbiteTheme: CustomFlowbiteTheme = {
     },
   },
   navbar: {
-    base: "fixed z-30 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700",
+    root: {
+      base: "fixed z-30 w-full bg-white border-b border-gray-200",
+    },
   },
   sidebar: {
-    base: "flex fixed top-0 left-0 z-20 flex-col flex-shrink-0 pt-16 h-full duration-75 border-r border-gray-200 lg:flex transition-width dark:border-gray-700",
+    root: {
+      base: "flex fixed top-0 left-0 z-20 flex-col flex-shrink-0 pt-14 h-full duration-75 border-r border-gray-200 lg:flex transition-width",
+      inner: "flex flex-col h-full overflow-y-auto p-2 bg-white",
+    },
   },
   textarea: {
     base: "block w-full text-sm p-4 rounded-lg border disabled:cursor-not-allowed disabled:opacity-50",
@@ -54,6 +61,13 @@ const flowbiteTheme: CustomFlowbiteTheme = {
     toggle: {
       checked: {
         off: "!border-gray-200 !bg-gray-200 dark:!border-gray-600 dark:!bg-gray-700",
+      },
+    },
+  },
+  datepicker: {
+    popup: {
+      root: {
+        base: "relative top-10 z-50 block pt-2",
       },
     },
   },

@@ -1,18 +1,22 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { Badge, Dropdown, Table, useTheme } from "flowbite-react";
-import type { FC } from "react";
+import { Badge, Button, Dropdown, Select, Table, useTheme } from "flowbite-react";
+import { useEffect, useState, type FC } from "react";
 import Chart from "react-apexcharts";
 import NavbarSidebarLayout from "../layouts/navbar-sidebar";
+import type { ChartResponseProps } from "../types/chart";
+import axios from "axios";
+import { CONFIG } from "../config";
+import { useAuth } from "../providers/auth-provider";
+import { HiRefresh } from "react-icons/hi";
 
 const DashboardPage: FC = function () {
   return (
-    <NavbarSidebarLayout>
+    <NavbarSidebarLayout isFooter={false}>
       <div className="px-4 pt-6">
         <SalesThisWeek />
         <div className="my-6">
           <LatestTransactions />
         </div>
-        <LatestCustomers />
         <div className="my-6">
           <AcquisitionOverview />
         </div>
@@ -22,64 +26,137 @@ const DashboardPage: FC = function () {
 };
 
 const SalesThisWeek: FC = function () {
+  // Parameter state
+  const currentDate = new Date();
+  const [year, setYear] = useState<number>(currentDate.getFullYear());
+  const [month, setMonth] = useState<number>(currentDate.getMonth() + 1);
+
   return (
     <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 xl:p-8">
       <div className="mb-4 flex items-center justify-between">
         <div className="shrink-0">
-          <span className="text-2xl font-bold leading-none text-gray-900 dark:text-white sm:text-3xl">
-            $45,385
-          </span>
-          <h3 className="text-base font-normal text-gray-600 dark:text-gray-400">
-            Sales this week
+          <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400">
+            Grafik Inventori
           </h3>
+          <span className="text-sm text-gray-400">
+            Grafik stok barang per bulan
+          </span>
         </div>
-        <div className="flex flex-1 items-center justify-end text-base font-bold text-green-600 dark:text-green-400">
-          12.5%
-          <svg
-            className="h-5 w-5"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
+        <div className="flex items-center justify-end gap-2 text-base font-bold text-green-600 dark:text-green-400">
+          <Select
+            sizing="sm"
+            className="relative cursor-pointer"
+            id="showingCount"
           >
-            <path
-              fillRule="evenodd"
-              d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+            <option value="1" defaultChecked>
+              Januari
+            </option>
+            <option value="2">Februari</option>
+            <option value="3">Maret</option>
+            <option value="4">April</option>
+            <option value="5">Mei</option>
+            <option value="6">Juni</option>
+            <option value="7">Juli</option>
+            <option value="8">Agustus</option>
+            <option value="9">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+          </Select>
+
+          <Select
+            sizing="sm"
+            className="relative w-20 cursor-pointer"
+            id="showingCount"
+          >
+            <option value="2025" defaultChecked>
+              2025
+            </option>
+            <option value="2024">2024</option>
+          </Select>
+
+          <Button
+            size="sm"
+            color="gray"
+            className="flex items-center gap-1 p-0 text-gray-500"
+            onClick={() => {
+              setYear(currentDate.getFullYear());
+              setMonth(currentDate.getMonth() + 1);
+            }}
+          >
+            <HiRefresh className="h-5 w-5" />
+            Reset
+          </Button>
         </div>
       </div>
-      <SalesChart />
-      <div className="mt-5 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700 sm:pt-6">
-        <Datepicker />
-        <div className="shrink-0">
-          <a
-            href="#"
-            className="inline-flex items-center rounded-lg p-2 text-xs font-medium uppercase text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700 sm:text-sm"
-          >
-            Sales Report
-            <svg
-              className="ml-1 h-4 w-4 sm:h-5 sm:w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
-        </div>
-      </div>
+      <InventoryChart year={year} month={month} />
     </div>
   );
 };
 
-const SalesChart: FC = function () {
+const InventoryChart: FC<{ year: number; month: number }> = function ({
+  year,
+  month,
+}) {
+  const { token } = useAuth();
+
+  const daysCount = new Date(year, month + 1, 0).getDate();
+
+  const [data, setData] = useState<ChartResponseProps>({
+    year: year,
+    month: month,
+    daysCount: daysCount,
+    totalStock: Array(daysCount).fill(0),
+    details: {
+      electronic: {
+        stock: Array(daysCount).fill(0),
+        inbound: Array(daysCount).fill(0),
+        outbound: Array(daysCount).fill(0),
+      },
+      cosmetic: {
+        stock: Array(daysCount).fill(0),
+        inbound: Array(daysCount).fill(0),
+        outbound: Array(daysCount).fill(0),
+      },
+      fnb: {
+        stock: Array(daysCount).fill(0),
+        inbound: Array(daysCount).fill(0),
+        outbound: Array(daysCount).fill(0),
+      },
+    },
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${CONFIG.API_URL}/dashboard/chart?year=${year}&month=${month}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log(response.data);
+
+      if (!response.data.success) throw new Error(response.data.message);
+
+      setLoading(false);
+      setData(response.data.data);
+    } catch (err: any) {
+      console.error(err);
+      setLoading(false);
+      setError(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [year, month]);
+
   const { mode } = useTheme();
   const isDarkTheme = mode === "dark";
 
@@ -90,15 +167,16 @@ const SalesChart: FC = function () {
 
   const options: ApexCharts.ApexOptions = {
     stroke: {
-      curve: "smooth",
+      curve: "straight",
     },
     chart: {
-      type: "area",
+      type: "bar",
       fontFamily: "Inter, sans-serif",
       foreColor: labelColor,
       toolbar: {
         show: false,
       },
+      stacked: true,
     },
     fill: {
       type: "gradient",
@@ -135,15 +213,7 @@ const SalesChart: FC = function () {
       },
     },
     xaxis: {
-      categories: [
-        "01 Feb",
-        "02 Feb",
-        "03 Feb",
-        "04 Feb",
-        "05 Feb",
-        "06 Feb",
-        "07 Feb",
-      ],
+      categories: Array.from({ length: data.daysCount }, (_, i) => i + 1),
       labels: {
         style: {
           colors: [labelColor],
@@ -168,6 +238,7 @@ const SalesChart: FC = function () {
       },
     },
     yaxis: {
+      max: () => Math.max(...data.totalStock),
       labels: {
         style: {
           colors: [labelColor],
@@ -175,7 +246,7 @@ const SalesChart: FC = function () {
           fontWeight: 500,
         },
         formatter: function (value) {
-          return "$" + value;
+          return `${Math.ceil(value)}`;
         },
       },
     },
@@ -203,200 +274,46 @@ const SalesChart: FC = function () {
       },
     ],
   };
-  const series = [
+  const series: ApexAxisChartSeries = [
     {
-      name: "Revenue",
-      data: [6356, 6218, 6156, 6526, 6356, 6256, 6056],
+      type: "column",
+      name: "Stok Elektronik",
+      data: data.details.electronic.stock,
       color: "#1A56DB",
+    },
+    {
+      type: "column",
+      name: "Stok Kosmetik",
+      data: data.details.cosmetic.stock,
+      color: "#F59E0B",
+    },
+    {
+      type: "column",
+      name: "Stok F&B",
+      data: data.details.fnb.stock,
+      color: "#10B981",
+    },
+    {
+      type: "line",
+      name: "Total Stok",
+      data: data.totalStock,
     },
   ];
 
   return <Chart height={420} options={options} series={series} type="area" />;
 };
 
-const Datepicker: FC = function () {
-  return (
-    <span className="text-sm text-gray-600">
-      <Dropdown inline label="Last 7 days">
-        <Dropdown.Item>
-          <strong>Sep 16, 2021 - Sep 22, 2021</strong>
-        </Dropdown.Item>
-        <Dropdown.Divider />
-        <Dropdown.Item>Yesterday</Dropdown.Item>
-        <Dropdown.Item>Today</Dropdown.Item>
-        <Dropdown.Item>Last 7 days</Dropdown.Item>
-        <Dropdown.Item>Last 30 days</Dropdown.Item>
-        <Dropdown.Item>Last 90 days</Dropdown.Item>
-        <Dropdown.Divider />
-        <Dropdown.Item>Custom...</Dropdown.Item>
-      </Dropdown>
-    </span>
-  );
-};
-
-const LatestCustomers: FC = function () {
-  return (
-    <div className="mb-4 h-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xl font-bold leading-none text-gray-900 dark:text-white">
-          Latest Customers
-        </h3>
-        <a
-          href="#"
-          className="inline-flex items-center rounded-lg p-2 text-sm font-medium text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700"
-        >
-          View all
-        </a>
-      </div>
-      <div className="flow-root">
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          <li className="py-3 sm:py-4">
-            <div className="flex items-center space-x-4">
-              <div className="shrink-0">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="/images/users/neil-sims.png"
-                  alt=""
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  Neil Sims
-                </p>
-                <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                  email@flowbite.com
-                </p>
-              </div>
-              <div className="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                $320
-              </div>
-            </div>
-          </li>
-          <li className="py-3 sm:py-4">
-            <div className="flex items-center space-x-4">
-              <div className="shrink-0">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="/images/users/bonnie-green.png"
-                  alt=""
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  Bonnie Green
-                </p>
-                <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                  email@flowbite.com
-                </p>
-              </div>
-              <div className="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                $3467
-              </div>
-            </div>
-          </li>
-          <li className="py-3 sm:py-4">
-            <div className="flex items-center space-x-4">
-              <div className="shrink-0">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="/images/users/michael-gough.png"
-                  alt=""
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  Michael Gough
-                </p>
-                <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                  email@flowbite.com
-                </p>
-              </div>
-              <div className="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                $67
-              </div>
-            </div>
-          </li>
-          <li className="py-3 sm:py-4">
-            <div className="flex items-center space-x-4">
-              <div className="shrink-0">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="/images/users/thomas-lean.png"
-                  alt=""
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  Thomes Lean
-                </p>
-                <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                  email@flowbite.com
-                </p>
-              </div>
-              <div className="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                $2367
-              </div>
-            </div>
-          </li>
-          <li className="py-3 sm:py-4">
-            <div className="flex items-center space-x-4">
-              <div className="shrink-0">
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="/images/users/lana-byrd.png"
-                  alt=""
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                  Lana Byrd
-                </p>
-                <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                  email@flowbite.com
-                </p>
-              </div>
-              <div className="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                $367
-              </div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div className="flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700 sm:pt-6">
-        <Datepicker />
-        <div className="shrink-0">
-          <a
-            href="#"
-            className="inline-flex items-center rounded-lg p-2 text-xs font-medium uppercase text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700 sm:text-sm"
-          >
-            Sales Report
-            <svg
-              className="ml-1 h-4 w-4 sm:h-5 sm:w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const AcquisitionOverview: FC = function () {
   return (
     <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6 xl:p-8">
-      <h3 className="mb-6 text-xl font-bold leading-none text-gray-900 dark:text-white">
-        Acquisition Overview
-      </h3>
+      <div className="mb-4 shrink-0">
+        <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400">
+          Grafik Inventori
+        </h3>
+        <span className="text-sm text-gray-400">
+          Grafik stok barang per bulan
+        </span>
+      </div>
       <div className="flex flex-col">
         <div className="overflow-x-auto rounded-lg">
           <div className="inline-block min-w-full align-middle">
@@ -404,13 +321,10 @@ const AcquisitionOverview: FC = function () {
               <Table className="min-w-full table-fixed">
                 <Table.Head>
                   <Table.HeadCell className="whitespace-nowrap rounded-l border-x-0 bg-gray-50 py-3 px-4 text-left align-middle text-xs font-semibold uppercase text-gray-700 dark:bg-gray-700 dark:text-white">
-                    Top Channels
+                    Kategori
                   </Table.HeadCell>
                   <Table.HeadCell className="whitespace-nowrap border-x-0 bg-gray-50 py-3 px-4 text-left align-middle text-xs font-semibold uppercase text-gray-700 dark:bg-gray-700 dark:text-white">
-                    Users
-                  </Table.HeadCell>
-                  <Table.HeadCell className="min-w-[140px] whitespace-nowrap rounded-r border-x-0 bg-gray-50 py-3 px-4 text-left align-middle text-xs font-semibold uppercase text-gray-700 dark:bg-gray-700 dark:text-white">
-                    Acquisition
+                    Jumlah Jenis Barang
                   </Table.HeadCell>
                 </Table.Head>
                 <Table.Body className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -418,124 +332,14 @@ const AcquisitionOverview: FC = function () {
                     <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
                       Organic Search
                     </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      5,649
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">30%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-primary-700"
-                              style={{ width: "30%" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row className="text-gray-500 dark:text-gray-400">
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
-                      Referral
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      4,025
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">24%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-orange-300"
-                              style={{ width: "24%" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row className="text-gray-500 dark:text-gray-400">
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
-                      Direct
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      3,105
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">18%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-teal-400"
-                              style={{ width: "18%" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row className="text-gray-500 dark:text-gray-400">
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
-                      Social
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      1251
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">12%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-pink-600"
-                              style={{ width: "12%" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row className="text-gray-500 dark:text-gray-400">
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
-                      Other
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      734
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">9%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-indigo-600"
-                              style={{ width: "9%" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row className="text-gray-500 dark:text-gray-400">
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 text-left align-middle text-sm font-normal">
-                      Email
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs font-medium text-gray-900 dark:text-white">
-                      456
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle text-xs">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-xs font-medium">7%</span>
-                        <div className="relative w-full">
-                          <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
-                            <div
-                              className="h-2 rounded-sm bg-purple-500"
-                              style={{ width: "7%" }}
-                            />
-                          </div>
+                    <Table.Cell className="whitespace-nowrap border-t-0 p-4 align-middle font-medium text-gray-900 dark:text-white">
+                      <div className="relative flex w-full flex-col gap-2">
+                        <span>5,649</span>
+                        <div className="h-2 w-full rounded-sm bg-gray-200 dark:bg-gray-700">
+                          <div
+                            className="h-2 rounded-sm bg-primary-700"
+                            style={{ width: "30%" }}
+                          />
                         </div>
                       </div>
                     </Table.Cell>
@@ -544,31 +348,6 @@ const AcquisitionOverview: FC = function () {
               </Table>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700 sm:pt-6">
-        <Datepicker />
-        <div className="shrink-0">
-          <a
-            href="#"
-            className="inline-flex items-center rounded-lg p-2 text-xs font-medium uppercase text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700 sm:text-sm"
-          >
-            Acquisition Report
-            <svg
-              className="ml-1 h-4 w-4 sm:h-5 sm:w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
         </div>
       </div>
     </div>
@@ -769,31 +548,6 @@ const LatestTransactions: FC = function () {
               </Table>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between pt-3 sm:pt-6">
-        <Datepicker />
-        <div className="shrink-0">
-          <a
-            href="#"
-            className="inline-flex items-center rounded-lg p-2 text-xs font-medium uppercase text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700 sm:text-sm"
-          >
-            Transactions Report
-            <svg
-              className="ml-1 h-4 w-4 sm:h-5 sm:w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
         </div>
       </div>
     </div>
