@@ -138,7 +138,7 @@ const RecordOutboundPage: FC = function () {
                   <TextInput
                     id="recordsSearch"
                     name="recordsSearch"
-                    placeholder="Cari nama barang Keluar..."
+                    placeholder="Cari nama barang keluar..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />

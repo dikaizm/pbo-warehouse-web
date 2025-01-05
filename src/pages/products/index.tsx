@@ -368,7 +368,7 @@ const AddProductModal: FC<{
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-          <strong>Tambah Produk Elektronik</strong>
+          <strong>Tambah Produk {getProductCategory(category)}</strong>
         </Modal.Header>
         <Modal.Body>
           <form>
@@ -559,7 +559,14 @@ const ViewProductModal: FC<{ id: string }> = function ({ id }) {
         <Modal.Body className="h-96 max-h-96 overflow-y-auto">
           <ListItem title="Kode SKU" value={data.skuCode} />
           <ListItem title="Nama Produk" value={data.productName} />
-          <ListItem title="Tipe" value={data.details?.type} />
+          {data.category == PRODUCT_CATEGORIES.ELECTRONICS ? (
+            <ListItem title="Tipe" value={data.details?.type} />
+          ) : (
+            <ListItem
+              title="Tanggal Kadaluarsa"
+              value={data.details?.expireDate}
+            />
+          )}
           <ListItem title="Kategori" value={data.category} />
           <ListItem title="Tanggal Entri" value={data.entryDate} />
           <ListItem title="Stok" value={data.stock} />

@@ -10,7 +10,7 @@ const ExampleNavbar: FC = function () {
             <Navbar.Brand href="/">
               <img alt="" src="/images/logo.svg" className="mr-3 h-6 sm:h-8" />
               <span className="self-center whitespace-nowrap text-2xl font-semibold dark:text-white">
-                Manajemen Gudang
+                GudangKu
               </span>
             </Navbar.Brand>
           </div>

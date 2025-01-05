@@ -31,9 +31,12 @@ const SignUpPage: FC = function () {
     setError(null);
 
     try {
-      const response = await axios.post(`${CONFIG.API_URL}/auth/login`, {
+      const response = await axios.post(`${CONFIG.API_URL}/auth/register`, {
+        name,
         email,
         password,
+        confirmPassword,
+        registerKey,
       });
 
       // Save token to local storage
@@ -58,7 +61,7 @@ const SignUpPage: FC = function () {
           className="mr-3 h-12"
         />
         <span className="self-center whitespace-nowrap text-2xl font-semibold dark:text-white">
-          Manajemen Gudang
+          GudangKu
         </span>
       </div>
       <Card
