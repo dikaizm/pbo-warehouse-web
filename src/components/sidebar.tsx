@@ -1,7 +1,7 @@
-import { Sidebar, TextInput } from "flowbite-react";
+import { Sidebar } from "flowbite-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";
-import { HiChartPie, HiLogin, HiSearch, HiUser } from "react-icons/hi";
+import { HiChartPie, HiLogin, HiUser } from "react-icons/hi";
 import { ROUTES } from "../const";
 import { useAuth } from "../providers/auth-provider";
 import { FaDownload, FaUpload, FaWarehouse } from "react-icons/fa";
@@ -24,7 +24,7 @@ const ExampleSidebar: FC = function () {
     <Sidebar aria-label="Sidebar with multi-level dropdown example">
       <div className="flex h-full flex-col justify-between py-2">
         <div>
-          <form className="pb-3">
+          {/* <form className="pb-3">
             <TextInput
               icon={HiSearch}
               type="search"
@@ -32,7 +32,7 @@ const ExampleSidebar: FC = function () {
               required
               size={32}
             />
-          </form>
+          </form> */}
           <Sidebar.Items>
             <Sidebar.ItemGroup>
               <Sidebar.Item
@@ -106,10 +106,10 @@ const ExampleSidebar: FC = function () {
             </Sidebar.ItemGroup>
             <Sidebar.ItemGroup>
               <Sidebar.Item
-                href="/users/list"
+                href={ROUTES.PROFILE}
                 icon={HiUser}
                 className={
-                  "/users/list" === currentPage
+                  ROUTES.PROFILE === currentPage
                     ? "bg-gray-100 dark:bg-gray-700"
                     : ""
                 }

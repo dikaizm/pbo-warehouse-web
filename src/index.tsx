@@ -10,11 +10,11 @@ import DashboardPage from "./pages";
 import SignInPage from "./pages/auth/sign-in";
 import SignUpPage from "./pages/auth/sign-up";
 import ProductsPage from "./pages/products";
-import UserListPage from "./pages/users/list";
 import { PRODUCT_CATEGORIES, ROUTES } from "./const";
 import { AuthProvider } from "./providers/auth-provider";
 import RecordInboundPage from "./pages/inbound";
 import RecordOutboundPage from "./pages/outbound";
+import ProfilePage from "./pages/profile";
 
 const container = document.getElementById("root");
 
@@ -59,7 +59,7 @@ root.render(
               element={<RecordOutboundPage />}
             />
 
-            <Route path={ROUTES.PROFILE} element={<UserListPage />} />
+            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

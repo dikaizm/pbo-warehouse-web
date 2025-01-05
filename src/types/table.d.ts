@@ -42,5 +42,6 @@ export interface TableFilterProps {
 
 export interface FilterProps {
   category: string;
-  entryDate: string;
+  startDate: string;
+  endDate: string;
 }

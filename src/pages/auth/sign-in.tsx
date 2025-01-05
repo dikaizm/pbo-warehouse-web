@@ -46,7 +46,7 @@ const SignInPage: FC = function () {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 lg:h-screen lg:gap-y-12">
+    <div className="flex min-h-screen flex-col items-center justify-center p-6 lg:gap-y-12">
       <div className="my-6 flex items-center gap-x-1 lg:my-0">
         <img
           alt="Flowbite logo"
@@ -54,7 +54,7 @@ const SignInPage: FC = function () {
           className="mr-3 h-12"
         />
         <span className="self-center whitespace-nowrap text-2xl font-semibold dark:text-white">
-          Flowbite
+          Manajemen Gudang
         </span>
       </div>
       <Card
@@ -62,11 +62,11 @@ const SignInPage: FC = function () {
         className="w-full md:max-w-screen-sm [&>img]:hidden md:[&>img]:w-96 md:[&>img]:p-0 md:[&>*]:w-full md:[&>*]:p-16 lg:[&>img]:block"
       >
         <h1 className="mb-3 text-2xl font-bold dark:text-white md:text-3xl">
-          Sign in to platform
+          Masuk ke akun Anda
         </h1>
         <form>
           <div className="mb-4 flex flex-col gap-y-3">
-            <Label htmlFor="email">Your email</Label>
+            <Label htmlFor="email">Email</Label>
             <TextInput
               id="email"
               name="email"
@@ -77,7 +77,7 @@ const SignInPage: FC = function () {
             />
           </div>
           <div className="mb-6 flex flex-col gap-y-3">
-            <Label htmlFor="password">Your password</Label>
+            <Label htmlFor="password">Kata Sandi</Label>
             <TextInput
               id="password"
               name="password"
@@ -94,7 +94,7 @@ const SignInPage: FC = function () {
               className="w-full lg:w-auto"
               color="primary"
             >
-              Login to your account
+              Masuk ke akun
             </Button>
             {error && (
               <p className="mt-3 text-sm text-red-500 dark:text-red-400">
@@ -103,9 +103,12 @@ const SignInPage: FC = function () {
             )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-300">
-            Not registered?&nbsp;
-            <a href="#" className="text-primary-600 dark:text-primary-300">
-              Create account
+            Belum punya akun?&nbsp;
+            <a
+              href={ROUTES.AUTH.REGISTER}
+              className="text-primary-600 dark:text-primary-300"
+            >
+              Buat akun
             </a>
           </p>
         </form>

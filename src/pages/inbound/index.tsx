@@ -13,7 +13,6 @@ import { useEffect, useState } from "react";
 import {
   HiChevronDown,
   HiChevronUp,
-  HiDocumentDownload,
   HiEye,
   HiHome,
   HiOutlineExclamationCircle,
@@ -32,8 +31,7 @@ import type {
   TableFilterProps,
 } from "../../types/table";
 import { Pagination } from "../../components/table-pagination";
-import { PRODUCT_CATEGORIES } from "../../const";
-import { inboundRecordSeed } from "./seed";
+import { getProductCategory, PRODUCT_CATEGORIES } from "../../const";
 
 const RecordInboundPage: FC = function () {
   const { token } = useAuth();
@@ -48,12 +46,14 @@ const RecordInboundPage: FC = function () {
     false,
     false,
   ]);
+  const [productUpdate, setProductUpdate] = useState<boolean>(false);
   const [filter, setFilter] = useState<FilterProps>({
     category: "",
-    entryDate: "",
+    startDate: "",
+    endDate: "",
   });
 
-  const [data, setData] = useState<InboundRecordProps[]>(inboundRecordSeed);
+  const [data, setData] = useState<InOutRecordProps[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ const RecordInboundPage: FC = function () {
 
     try {
       const response = await axios.get(
-        `${CONFIG.API_URL}/inbound/find?page=${page}&limit=${pagination.limit}&category=${filter.category}&name=${search}&order=${order}&sort=${sort}`,
+        `${CONFIG.API_URL}/stock/find/inbound?page=${page}&limit=${pagination.limit}&category=${filter.category}&name=${search}&order=${order}&sort=${sort}&startDate=${filter.startDate}&endDate=${filter.endDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -91,7 +91,15 @@ const RecordInboundPage: FC = function () {
 
   useEffect(() => {
     fetchData();
-  }, [search, sort, order, pagination.limit]);
+  }, [
+    search,
+    sort,
+    order,
+    pagination.limit,
+    filter.category,
+    filter.startDate,
+    filter.endDate,
+  ]);
 
   const handlePaginationBtn = (pageChange: number) => {
     if (
@@ -138,12 +146,12 @@ const RecordInboundPage: FC = function () {
               </form>
               <div className="ml-auto flex items-center space-x-2 sm:space-x-3">
                 <AddRecordModal />
-                <Button color="gray">
+                {/* <Button color="gray">
                   <div className="flex items-center gap-x-3">
                     <HiDocumentDownload className="text-xl" />
                     <span>Unduh Excel</span>
                   </div>
-                </Button>
+                </Button> */}
               </div>
             </div>
 
@@ -174,19 +182,27 @@ const RecordInboundPage: FC = function () {
                 </div>
 
                 <div className="relative flex items-center justify-center gap-2 ">
-                  <Label htmlFor="entryDate">Tanggal Masuk</Label>
+                  <Label htmlFor="recordDate">Tanggal Masuk</Label>
                   <input
                     type="date"
-                    name="entryDate"
-                    id="entryDateStart"
+                    name="recordDate"
+                    id="recordDateStart"
                     className="rounded-lg border border-gray-300 bg-gray-50 py-[6px] px-2 text-sm"
+                    value={filter.startDate}
+                    onChange={(e) => {
+                      setFilter({ ...filter, startDate: e.target.value });
+                    }}
                   />
                   <span>-</span>
                   <input
                     type="date"
-                    name="entryDate"
-                    id="entryDateEnd"
+                    name="recordDate"
+                    id="recordDateEnd"
                     className="rounded-lg border border-gray-300 bg-gray-50 py-[6px] px-2 text-sm"
+                    value={filter.endDate}
+                    onChange={(e) => {
+                      setFilter({ ...filter, endDate: e.target.value });
+                    }}
                   />
                 </div>
               </div>
@@ -235,6 +251,7 @@ const RecordInboundPage: FC = function () {
                   setter: setColumnState,
                 }}
                 filter={filter}
+                update={{ value: productUpdate, setter: setProductUpdate }}
               />
             </div>
           </div>
@@ -269,7 +286,7 @@ interface AddRecordFormProps {
   productId: string;
   productName: string;
   quantity: number;
-  entryDate: string;
+  recordDate: string;
 }
 
 const AddRecordModal: FC = function () {
@@ -282,7 +299,7 @@ const AddRecordModal: FC = function () {
     productId: "",
     productName: "",
     quantity: 0,
-    entryDate: "",
+    recordDate: "",
   });
 
   const getProductList = async (category: string) => {
@@ -305,11 +322,11 @@ const AddRecordModal: FC = function () {
   const handleAddRecord = async () => {
     try {
       const response = await axios.post(
-        `${CONFIG.API_URL}/inbound/add`,
+        `${CONFIG.API_URL}/stock/add/inbound`,
         {
           productId: formData.productId,
           quantity: formData.quantity,
-          entryDate: formData.entryDate,
+          recordDate: formData.recordDate,
         },
         {
           headers: {
@@ -370,7 +387,14 @@ const AddRecordModal: FC = function () {
             <div>
               <Label htmlFor="productName">Nama Produk</Label>
               <div className="mt-1">
-                <Select id="productName" placeholder="Pilih produk">
+                <Select
+                  id="productName"
+                  placeholder="Pilih produk"
+                  value={formData.productId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, productId: e.target.value })
+                  }
+                >
                   <option defaultChecked hidden>
                     Pilih produk
                   </option>
@@ -393,6 +417,10 @@ const AddRecordModal: FC = function () {
                   name="quantity"
                   placeholder="50"
                   type="number"
+                  value={formData.quantity}
+                  onChange={(e) =>
+                    setFormData({ ...formData, quantity: +e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -401,9 +429,13 @@ const AddRecordModal: FC = function () {
               <div className="mt-1">
                 <input
                   type="date"
-                  name="entryDate"
-                  id="entryDateStart"
+                  name="recordDate"
+                  id="recordDateStart"
                   className="w-full rounded-lg border border-gray-300 bg-gray-50 py-[10px] px-2 text-sm"
+                  value={formData.recordDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, recordDate: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -419,17 +451,18 @@ const AddRecordModal: FC = function () {
   );
 };
 
-export interface InboundRecordProps {
-  id: string;
+export interface InOutRecordProps {
+  id: number;
+  productId: string;
   skuCode: string;
   productName: string;
   category: string;
-  entryDate: string;
+  recordDate: string;
   quantity: number;
 }
 
 interface AllRecordsTableProps extends TableFilterProps {
-  data: InboundRecordProps[];
+  data: InOutRecordProps[];
   filter: FilterProps;
 }
 
@@ -440,11 +473,11 @@ const AllRecordsTable: FC<AllRecordsTableProps> = function ({
   columnState,
 }) {
   const header = [
-    { key: "skuCode", value: "Kode SKU" },
-    { key: "productName", value: "Nama Produk" },
+    { key: "sku_code", value: "Kode SKU" },
+    { key: "name", value: "Nama Produk" },
     { key: "category", value: "Kategori" },
     { key: "quantity", value: "Kuantitas" },
-    { key: "entryDate", value: "Tanggal Masuk" },
+    { key: "record_date", value: "Tanggal Masuk" },
   ];
 
   return (
@@ -515,20 +548,20 @@ const AllRecordsTable: FC<AllRecordsTableProps> = function ({
                 {item.productName}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.category}
+                {getProductCategory(item.category)}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
                 {item.quantity}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap p-4 text-sm font-normal text-gray-900 dark:text-white">
-                {item.entryDate}
+                {item.recordDate}
               </Table.Cell>
 
               <Table.Cell className="space-x-2 whitespace-nowrap p-4">
                 <div className="flex items-center gap-x-2">
-                  <ViewProductModal id={item.id} />
-                  <EditProductModal id={item.id} />
-                  <DeleteProductModal id={item.id} />
+                  <ViewRecordModal id={item.id} />
+                  <EditRecordModal id={item.id} />
+                  <DeleteRecordModal id={item.id} />
                 </div>
               </Table.Cell>
             </Table.Row>
@@ -539,13 +572,14 @@ const AllRecordsTable: FC<AllRecordsTableProps> = function ({
   );
 };
 
-interface ProductDetailProps {
+interface RecordDetailProps {
   id: string;
   skuCode: string;
   productName: string;
   category: string;
-  entryDate: string;
-  stock: number;
+  recordDate: string;
+  quantity: number;
+  currentStock: number;
   maxStock: number;
   createdBy: {
     name: string;
@@ -557,15 +591,16 @@ interface ProductDetailProps {
   };
 }
 
-const ViewProductModal: FC<{ id: string }> = function ({ id }) {
+const ViewRecordModal: FC<{ id: number }> = function ({ id }) {
   const [isOpen, setOpen] = useState(false);
-  const [data, setData] = useState<ProductDetailProps>({
+  const [data, setData] = useState<RecordDetailProps>({
     id: "",
     skuCode: "",
     productName: "",
     category: "",
-    entryDate: new Date().getUTCDate().toString(),
-    stock: 0,
+    recordDate: new Date().getUTCDate().toString(),
+    quantity: 0,
+    currentStock: 0,
     maxStock: 0,
     createdBy: {
       name: "",
@@ -579,9 +614,9 @@ const ViewProductModal: FC<{ id: string }> = function ({ id }) {
 
   const { token } = useAuth();
 
-  const handleViewProduct = async (id: string) => {
+  const handleViewRecord = async (id: number) => {
     try {
-      const response = await axios.get(`${CONFIG.API_URL}/product/find/${id}`, {
+      const response = await axios.get(`${CONFIG.API_URL}/stock/find/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -596,7 +631,7 @@ const ViewProductModal: FC<{ id: string }> = function ({ id }) {
   return (
     <>
       <Button
-        onClickCapture={() => handleViewProduct(id)}
+        onClickCapture={() => handleViewRecord(id)}
         className="bg-primary-200 px-0 hover:bg-primary-300"
         size="sm"
         onClick={() => setOpen(!isOpen)}
@@ -605,34 +640,107 @@ const ViewProductModal: FC<{ id: string }> = function ({ id }) {
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-          <strong>Detail produk</strong>
+          <strong>Detail Record</strong>
         </Modal.Header>
         <Modal.Body className="h-96 max-h-96 overflow-y-auto">
-          <ListItem title="Kode SKU" value={data.skuCode} />
-          <ListItem title="Nama Produk" value={data.productName} />
-          <ListItem title="Tipe" value={data.details?.type} />
-          <ListItem title="Kategori" value={data.category} />
-          <ListItem title="Tanggal Entri" value={data.entryDate} />
-          <ListItem title="Stok" value={data.stock} />
-          <ListItem title="Stok Maksimal" value={data.maxStock} />
-          <ListItem
-            title="Entri Oleh"
-            value={data.createdBy.name + " (" + data.createdBy.email + ")"}
-          />
+          <div>
+            <ListItem
+              title="Kategori"
+              value={getProductCategory(data.category)}
+            />
+            <ListItem title="Kode SKU" value={data.skuCode} />
+            <ListItem title="Nama Produk" value={data.productName} />
+            <ListItem title="Kuantitas" value={data.quantity} />
+            {data.category == PRODUCT_CATEGORIES.ELECTRONICS ? (
+              <ListItem title="Tipe" value={data.details?.type} />
+            ) : (
+              <ListItem
+                title="Tanggal Kadaluarsa"
+                value={data.details?.expireDate}
+              />
+            )}
+            <ListItem title="Tanggal Entri" value={data.recordDate} />
+            <ListItem
+              title="Entri Oleh"
+              value={data.createdBy.name + " (" + data.createdBy.email + ")"}
+            />
+          </div>
+          <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+            <h3 className="text-lg font-semibold">Stok</h3>
+          </div>
+          <div>
+            <ListItem title="Stok Saat Ini" value={data.currentStock} />
+            <ListItem title="Stok Maksimal" value={data.maxStock} />
+          </div>
         </Modal.Body>
       </Modal>
     </>
   );
 };
 
-const EditProductModal: FC<{ id: string }> = function ({ id }) {
-  const [isOpen, setOpen] = useState(false);
+const EditRecordModal: FC<{ id: number }> = function ({ id }) {
   const { token } = useAuth();
+  const [isOpen, setOpen] = useState(false);
+  const [productList, setProductList] = useState<ProductProps[]>([]);
 
-  const handleEditProduct = async () => {
+  const [formData, setFormData] = useState<AddRecordFormProps>({
+    category: "",
+    productId: "",
+    productName: "",
+    quantity: 0,
+    recordDate: "",
+  });
+
+  const fetchData = async (id: number) => {
     try {
-      const response = await axios.put(
-        `${CONFIG.API_URL}/product/update/${id}`,
+      const response = await axios.get(`${CONFIG.API_URL}/stock/find/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log(response.data);
+
+      setFormData({
+        category: response.data.data.category,
+        productId: response.data.data.productId,
+        productName: response.data.data.productName,
+        quantity: response.data.data.quantity,
+        recordDate: response.data.data.recordDate,
+      });
+
+      getProductList(response.data.data.category);
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
+
+  const getProductList = async (category: string) => {
+    try {
+      const response = await axios.get(
+        `${CONFIG.API_URL}/product/find?category=${category}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setProductList(response.data.data);
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
+
+  const handleEditRecord = async () => {
+    try {
+      const response = await axios.post(
+        `${CONFIG.API_URL}/stock/update/inbound/${id}`,
+        {
+          productId: formData.productId,
+          quantity: formData.quantity,
+          recordDate: formData.recordDate,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -643,7 +751,7 @@ const EditProductModal: FC<{ id: string }> = function ({ id }) {
       if (response.data.success) {
         setOpen(false);
       } else {
-        alert("Gagal mengedit produk");
+        alert("Gagal menambahkan stok");
       }
     } catch (error: any) {
       console.error(error.message);
@@ -654,6 +762,7 @@ const EditProductModal: FC<{ id: string }> = function ({ id }) {
   return (
     <>
       <Button
+        onClickCapture={() => fetchData(id)}
         className="bg-orange-200 px-0 hover:bg-orange-300"
         size="sm"
         onClick={() => setOpen(!isOpen)}
@@ -662,45 +771,96 @@ const EditProductModal: FC<{ id: string }> = function ({ id }) {
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen}>
         <Modal.Header className="border-b border-gray-200 !p-6 dark:border-gray-700">
-          <strong>Edit Produk</strong>
+          <strong>Edit Stok</strong>
         </Modal.Header>
         <Modal.Body>
-          <form>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>
-                <Label htmlFor="productName">Nama Produk</Label>
-                <TextInput
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="firstName">Kategori</Label>
+              <div className="mt-1">
+                <Select
+                  id="showingCount"
+                  placeholder="Pilih kategori"
+                  value={formData.category}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, category: value });
+                    getProductList(value);
+                  }}
+                  required
+                >
+                  <option defaultChecked hidden>
+                    Pilih kategori
+                  </option>
+                  <option value={PRODUCT_CATEGORIES.ELECTRONICS}>
+                    Elektronik
+                  </option>
+                  <option value={PRODUCT_CATEGORIES.COSMETICS}>Kosmetik</option>
+                  <option value={PRODUCT_CATEGORIES.FNB}>F&B</option>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="productName">Nama Produk</Label>
+              <div className="mt-1">
+                <Select
                   id="productName"
-                  name="productName"
-                  placeholder='Apple iMac 27"'
-                  className="mt-1"
-                />
+                  placeholder="Pilih produk"
+                  value={formData.productId || ""} // Controlled component
+                  onChange={(e) =>
+                    setFormData({ ...formData, productId: e.target.value })
+                  }
+                  required
+                >
+                  <option hidden value="">
+                    Pilih produk
+                  </option>
+                  {productList.length > 0 &&
+                    productList.map((item, index) => (
+                      <option key={index} value={item.id}>
+                        {item.productName} - {item.skuCode}
+                      </option>
+                    ))}
+                </Select>
               </div>
-              <div>
-                <Label htmlFor="type">Tipe</Label>
+            </div>
+            <div>
+              <Label htmlFor="quantity">Kuantitas</Label>
+              <div className="mt-1">
                 <TextInput
-                  id="type"
-                  name="type"
-                  placeholder="Laptop"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="maxStock">Stok Maksimum</Label>
-                <TextInput
-                  type="number"
-                  id="maxStock"
-                  name="maxStock"
+                  id="quantity"
+                  name="quantity"
                   placeholder="50"
-                  className="mt-1"
+                  type="number"
+                  value={formData.quantity}
+                  onChange={(e) =>
+                    setFormData({ ...formData, quantity: +e.target.value })
+                  }
+                  required
                 />
               </div>
             </div>
-          </form>
+            <div>
+              <Label htmlFor="phone">Tanggal Masuk</Label>
+              <div className="mt-1">
+                <input
+                  type="date"
+                  name="recordDate"
+                  id="recordDate"
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 py-[10px] px-2 text-sm"
+                  value={formData.recordDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, recordDate: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
+          </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button color="primary" onClick={() => handleEditProduct()}>
-            Simpan
+          <Button color="primary" onClick={() => handleEditRecord()}>
+            Simpan Perubahan
           </Button>
         </Modal.Footer>
       </Modal>
@@ -708,14 +868,14 @@ const EditProductModal: FC<{ id: string }> = function ({ id }) {
   );
 };
 
-const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
+const DeleteRecordModal: FC<{ id: number }> = function ({ id }) {
   const [isOpen, setOpen] = useState(false);
   const { token } = useAuth();
 
   const handleDeleteProduct = async () => {
     try {
       const response = await axios.delete(
-        `${CONFIG.API_URL}/product/delete/${id}`,
+        `${CONFIG.API_URL}/stock/delete/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -746,13 +906,13 @@ const DeleteProductModal: FC<{ id: string }> = function ({ id }) {
       </Button>
       <Modal onClose={() => setOpen(false)} show={isOpen} size="md">
         <Modal.Header className="px-3 pt-3 pb-0">
-          <span className="sr-only">Delete product</span>
+          <span className="sr-only">Hapus Record</span>
         </Modal.Header>
         <Modal.Body className="px-6 pb-6 pt-0">
           <div className="flex flex-col items-center gap-y-6 text-center">
             <HiOutlineExclamationCircle className="text-7xl text-red-600" />
             <p className="text-lg text-gray-500 dark:text-gray-300">
-              Apakah kamu yakin ingin menghapus produk ini?
+              Apakah kamu yakin ingin menghapus record ini?
             </p>
             <div className="flex items-center gap-x-3">
               <Button color="failure" onClick={() => handleDeleteProduct()}>
