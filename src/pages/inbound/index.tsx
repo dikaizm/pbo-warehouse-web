@@ -289,6 +289,15 @@ interface AddRecordFormProps {
   recordDate: string;
 }
 
+interface EditRecordFormProps {
+  category: string;
+  currentProductId: string;
+  newProductId: string;
+  productName: string;
+  quantity: number;
+  recordDate: string;
+}
+
 const AddRecordModal: FC = function () {
   const { token } = useAuth();
   const [isOpen, setOpen] = useState(false);
@@ -683,9 +692,10 @@ const EditRecordModal: FC<{ id: number }> = function ({ id }) {
   const [isOpen, setOpen] = useState(false);
   const [productList, setProductList] = useState<ProductProps[]>([]);
 
-  const [formData, setFormData] = useState<AddRecordFormProps>({
+  const [formData, setFormData] = useState<EditRecordFormProps>({
     category: "",
-    productId: "",
+    currentProductId: "",
+    newProductId: "",
     productName: "",
     quantity: 0,
     recordDate: "",
@@ -703,7 +713,8 @@ const EditRecordModal: FC<{ id: number }> = function ({ id }) {
 
       setFormData({
         category: response.data.data.category,
-        productId: response.data.data.productId,
+        currentProductId: response.data.data.productId,
+        newProductId: response.data.data.productId,
         productName: response.data.data.productName,
         quantity: response.data.data.quantity,
         recordDate: response.data.data.recordDate,
@@ -734,10 +745,11 @@ const EditRecordModal: FC<{ id: number }> = function ({ id }) {
 
   const handleEditRecord = async () => {
     try {
-      const response = await axios.post(
-        `${CONFIG.API_URL}/stock/update/inbound/${id}`,
+      const response = await axios.put(
+        `${CONFIG.API_URL}/stock/update/${id}`,
         {
-          productId: formData.productId,
+          currentProductId: formData.currentProductId,
+          newProductId: formData.newProductId,
           quantity: formData.quantity,
           recordDate: formData.recordDate,
         },
@@ -806,9 +818,9 @@ const EditRecordModal: FC<{ id: number }> = function ({ id }) {
                 <Select
                   id="productName"
                   placeholder="Pilih produk"
-                  value={formData.productId || ""} // Controlled component
+                  value={formData.newProductId || ""} // Controlled component
                   onChange={(e) =>
-                    setFormData({ ...formData, productId: e.target.value })
+                    setFormData({ ...formData, newProductId: e.target.value })
                   }
                   required
                 >
@@ -841,7 +853,7 @@ const EditRecordModal: FC<{ id: number }> = function ({ id }) {
               </div>
             </div>
             <div>
-              <Label htmlFor="phone">Tanggal Masuk</Label>
+              <Label htmlFor="phone">Tanggal Keluar</Label>
               <div className="mt-1">
                 <input
                   type="date"
